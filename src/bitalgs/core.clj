@@ -190,23 +190,3 @@
          (for [b bytes
                :let [s (Integer/toHexString b)]]
            (if (= 2 (count s)) s (str \0 s)))))
-
-(comment
-
-  (sha1 (.getBytes "Message"))
-
-  (->> (.getBytes "Message")
-       (seq)
-       (pad-message)
-
-       (partition 4)
-       (expand-chunk)
-       (apply concat)
-       (map #(Integer/toHexString (int %))))
-
-  (word32? (word32-xor '(0 0 0 0) '(0 0 0 0) '(0 0 0 0) '(77 101 115 115)))
-
-  (for [word sha1-init-state]
-    (for [b word]
-      (Integer/toHexString (int b))))
- )
