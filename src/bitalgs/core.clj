@@ -73,14 +73,10 @@
   (as-> x x
         (bytes->word32 x)
         (+ (bit-and 4294967295
-                    (bit-shift-left n x))
+                    (bit-shift-left x n))
            (bit-and 4294967295
-                    (bit-shift-right (- 32 n) x)))
+                    (bit-shift-right x (- 32 n))))
         (word32->bytes x)))
-
-;; this doesn't do what i expect, so I think
-;; the above is wrong.
-(word32-bit-rotate-left 1 [8 0 0 0])
 
 (defn word32-xor
   [& xs])
