@@ -1,31 +1,18 @@
-(ns bitalgs.data)
+(ns bitalgs.data
+  (:refer-clojure :exclude [bytes]))
 
 (defprotocol IByteString
-  (bytecount [x])
-  (byte-at [x i]))
+  (bytecount [x] "Returns the number of bytes in this byte string.")
+  (byte-at [x i] "Returns a long between 0 and 255."))
 
-(defrecord Byte [val]
-  IByteString
-  (bytecount [_] 1)
-  (byte-at [_ i]
-    (assert (zero? i))
-    val))
+(defn bytes
+  [bytestring]
+  (for [i (range (bytecount bytestring))]
+    (byte-at bytestring i)))
 
-(defn byte? [x] (instance? Byte x))
-
-(def bytes?
-  #(= ::bytes (type %)))
-
-(def word32s?
-  #(= ::word32s (type %)))
-
-(defn to-byte
-  [bs]
-  {:pre [(= 8 (bitcount bs))]}
-  )
-
-(defn to-bytes
-  [bs]
-  {:pre [(zero? (rem (bitcount bs) 8))]}
-  (vec )
-  )
+(defn bytes->hex
+  [bytestring]
+  (apply str
+         (for [b (bytes bytestring)
+               :let [s (Integer/toHexString b)]]
+           (if (= 2 (count s)) s (str \0 s)))))
