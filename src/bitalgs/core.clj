@@ -1,5 +1,4 @@
-(ns bitalgs.core
-  (:require [bitalgs.data :as d]))
+(ns bitalgs.core)
 
 ;; step 1 -- try to implement sha1 in a straightforward way.
 ;;
@@ -64,15 +63,17 @@
   (and (= word-nums (count x))
        (every? word32? x)))
 
+(defn mask-32
+  [x]
+  (bit-and 4294967295 x))
+
 (defn word32-bit-rotate-left
   [x n]
   {:pre [(word32? x)]}
   (as-> x x
         (bytes->word32 x)
-        (+ (bit-and 4294967295
-                    (bit-shift-left x n))
-           (bit-and 4294967295
-                    (bit-shift-right x (- 32 n))))
+        (+ (mask-32 (bit-shift-left x n))
+           (mask-32 (bit-shift-right x (- 32 n))))
         (word32->bytes x)))
 
 (defn word32-xor
@@ -81,6 +82,31 @@
      (map bit-xor x1 x2))
   ([x1 x2 x3 & xs]
      (reduce word32-xor (list* x1 x2 x3 xs))))
+
+(defn word32-add
+  "Adds two words mod 2^32."
+  ([x] x)
+  ([x y]
+     (let [x' (bytes->word32 x)
+           y' (bytes->word32 y)]
+       (-> (+ x' y')
+           (mask-32)
+           (word32->bytes))))
+  ([x1 x2 x3 & xz]
+     (reduce word32-add (list* x1 x2 x3 xz))))
+
+(defn word32-and
+  [x y]
+  (map bit-and x y))
+
+(defn word32-not
+  [x]
+  (map bit-not x))
+
+(defn word32-or
+  ([x] x)
+  ([x y & zs]
+     (apply map bit-or x y zs)))
 
 (defn expand-chunk
   [chunk]
@@ -98,13 +124,53 @@
                       1)]
         (recur (conj chunk new-word) (inc t))))))
 
+(defn sha1-f
+  [t B C D]
+  (cond (<= 0 t 19)
+        (word32-or
+         (word32-and B C)
+         (word32-and (word32-not B) D))
+
+        (or (<= 20 t 39)
+            (<= 60 t 79))
+        (word32-xor B C D)
+
+        (<= 40 59)
+        (word32-or
+         (word32-and B C)
+         (word32-and B D)
+         (word32-and C D))))
+
+(defn sha1-K
+  [t]
+  ((comp word32->bytes #(Long/parseLong % 16))
+   (cond (<= 0 t 19) "5A827999"
+         (<= 20 t 39) "6ED9EBA1"
+         (<= 40 t 59) "8F1BBCDC"
+         (<= 60 t 79) "CA62C1D6")))
+
 (defn sha1-chunk
   [state chunk]
   {:pre [(word32s? 5 state)
          (word32s? 16 chunk)]
    :post [(word32s? 5 %)]}
-
-  state)
+  (let [chunk' (expand-chunk chunk)
+        [H0 H1 H2 H3 H4] state]
+    (loop [[A B C D E] state, t 0]
+      (if (= 80 t)
+        [(word32-add A H0)
+         (word32-add B H1)
+         (word32-add C H2)
+         (word32-add D H3)
+         (word32-add E H4)]
+        (let [A' (word32-add
+                  (word32-bit-rotate-left A 5)
+                  (sha1-f t B C D)
+                  E
+                  (chunk' t)
+                  (sha1-K t))
+              C' (word32-bit-rotate-left B 30)]
+          (recur [A' A C' C D] (inc t)))))))
 
 (defn sha1
   [bytes]
@@ -117,6 +183,13 @@
        (reduce sha1-chunk sha1-init-state)
        ;; back from words to bytes
        (apply concat)))
+
+(defn bytes->hex
+  [bytes]
+  (apply str
+         (for [b bytes
+               :let [s (Integer/toHexString b)]]
+           (if (= 2 (count s)) s (str \0 s)))))
 
 (comment
 

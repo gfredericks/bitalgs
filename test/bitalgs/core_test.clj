@@ -1,7 +1,11 @@
 (ns bitalgs.core-test
-  (:use clojure.test
-        bitalgs.core))
+  (:require [bitalgs.core :refer :all]
+            [clojure.test :refer :all]))
 
-(deftest a-test
-  (testing "FIXME, I fail."
-    (is (= 0 1))))
+(deftest sha1-test
+  (are [in-ascii out-hex]
+       (= out-hex (->> (.getBytes in-ascii)
+                       (seq)
+                       (sha1)
+                       (bytes->hex)))
+       "Message" "68f4145fee7dde76afceb910165924ad14cf0d00"))
