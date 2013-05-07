@@ -1,13 +1,10 @@
-(ns bitalgs.core)
+(ns bitalgs.core
+  (:require [bitalgs.data :as d]))
 
 ;; step 1 -- try to implement sha1 in a straightforward way.
 ;;
 ;; To start with we're going to represent data as seqs of bytes.
 ;; Probably we could make a protocol for this eh?
-
-(defprotocol IBitstring
-  (bitcount [_])
-  (bit-at [_ i]))
 
 (defn word64->bytes
   [x]
