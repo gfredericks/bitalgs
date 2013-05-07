@@ -68,7 +68,7 @@
        (every? word32? x)))
 
 (defn word32-bit-rotate-left
-  [n x]
+  [x n]
   {:pre [(word32? x)]}
   (as-> x x
         (bytes->word32 x)
@@ -79,7 +79,11 @@
         (word32->bytes x)))
 
 (defn word32-xor
-  [& xs])
+  ([x] x)
+  ([x1 x2]
+     (map bit-xor x1 x2))
+  ([x1 x2 x3 & xs]
+     (reduce word32-xor (list* x1 x2 x3 xs))))
 
 (defn expand-chunk
   [chunk]
@@ -88,12 +92,14 @@
   (loop [chunk (vec chunk), t 16]
     (if (= 80 t)
       chunk
-      (word32-bit-rotate-left 1
-                       (word32-xor
-                        (chunk (- t 3))
-                        (chunk (- t 8))
-                        (chunk (- t 14))
-                        (chunk (- t 16)))))))
+      (let [new-word (word32-bit-rotate-left
+                      (word32-xor
+                       (chunk (- t 3))
+                       (chunk (- t 8))
+                       (chunk (- t 14))
+                       (chunk (- t 16)))
+                      1)]
+        (recur (conj chunk new-word) (inc t))))))
 
 (defn sha1-chunk
   [state chunk]
@@ -122,8 +128,13 @@
   (->> (.getBytes "Message")
        (seq)
        (pad-message)
-       (map #(Integer/toHexString (int %)))
-       (count))
+
+       (partition 4)
+       (expand-chunk)
+       (apply concat)
+       (map #(Integer/toHexString (int %))))
+
+  (word32? (word32-xor '(0 0 0 0) '(0 0 0 0) '(0 0 0 0) '(77 101 115 115)))
 
   (for [word sha1-init-state]
     (for [b word]
