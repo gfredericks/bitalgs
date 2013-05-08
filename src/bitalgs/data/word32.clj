@@ -16,7 +16,7 @@
     (assert (<= 0 i 3))
     (core/bit-and 255
                   (core/bit-shift-right long-val
-                                        (* i 8)))))
+                                        (* (- 3 i) 8)))))
 
 (defn word32? [x] (instance? Word32 x))
 
