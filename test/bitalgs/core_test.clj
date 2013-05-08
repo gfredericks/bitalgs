@@ -8,9 +8,10 @@
               (seq)
               (pad-message)
               (partition 4)
+              (map bytes->word32)
               (expand-chunk)
-              (apply concat)
-              (bytes->hex))
+              (map data/bytes->hex)
+              (apply str))
          (str "4d65737361676580000000000000000000000000"
               "0000000000000000000000000000000000000000"
               "0000000000000000000000000000000000000000"
