@@ -30,6 +30,11 @@
                    :inputs inputs}
      ::id (gensym "word32")}))
 
+(defn word32-with-id
+  [long-val]
+  (with-meta (->Word32 long-val)
+    {::id (gensym "word32")}))
+
 (defn mask
   [x]
   (core/bit-and 4294967295 x))

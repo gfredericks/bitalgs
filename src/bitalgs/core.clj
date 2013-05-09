@@ -35,13 +35,24 @@
         bytes'' (concat bytes' (repeat spacer-byte-count 0))]
     (concat bytes'' (word64->bytes (* 8 (count bytes))))))
 
+(defn constant
+  [hex]
+  (word32/word32-with-id (Long/parseLong hex 16)))
+
 (def sha1-init-state
-  (map (comp word32/->Word32 #(Long/parseLong % 16))
+  (map constant
        ["67452301"
         "EFCDAB89"
         "98BADCFE"
         "10325476"
         "C3D2E1F0"]))
+
+(def K-constants
+  (mapv constant
+        ["5A827999"
+         "6ED9EBA1"
+         "8F1BBCDC"
+         "CA62C1D6"]))
 
 (defn byte? [x] (<= 0 x 255))
 
@@ -99,11 +110,7 @@
 
 (defn sha1-K
   [t]
-  ((comp word32/->Word32 #(Long/parseLong % 16))
-   (cond (<= 0 t 19) "5A827999"
-         (<= 20 t 39) "6ED9EBA1"
-         (<= 40 t 59) "8F1BBCDC"
-         (<= 60 t 79) "CA62C1D6")))
+  (K-constants (quot t 20)))
 
 (defn sha1-chunk
   [state chunk]
