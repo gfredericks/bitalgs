@@ -57,9 +57,12 @@
 (defn word32-bit-rotate-left
   [x n]
   {:pre [(word32? x)]}
-  (word32/+
-   (word32/bit-shift-left x n)
-   (word32/bit-shift-right x (- 32 n))))
+  (word32/word32-with-provenance
+   (word32/+
+    (word32/bit-shift-left x n)
+    (word32/bit-shift-right x (- 32 n)))
+   :bit-rotate-left
+   [x n]))
 
 (defn expand-chunk
   [chunk]
