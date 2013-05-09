@@ -1,5 +1,7 @@
 (ns bitalgs.core
-  (:require [bitalgs.data.word32 :as word32]))
+  (:require [bitalgs.data.word32
+             :as w32
+             :refer [word32?]]))
 
 ;; step 1 -- try to implement sha1 in a straightforward way.
 ;;
@@ -18,7 +20,7 @@
 (defn bytes->word32
   [[a b c d :as bytes]]
   {:pre [(= 4 (count bytes))]}
-  (word32/->Word32
+  (w32/->Word32
    (+ (* a 16777216)
       (* b 65536)
       (* c 256)
@@ -37,7 +39,7 @@
 
 (defn constant
   [hex]
-  (word32/word32-with-id (Long/parseLong hex 16)))
+  (w32/word32-with-id (Long/parseLong hex 16)))
 
 (def sha1-init-state
   (map constant
@@ -56,10 +58,6 @@
 
 (defn byte? [x] (<= 0 x 255))
 
-(defn word32?
-  [x]
-  (word32/word32? x))
-
 (defn word32s?
   [word-nums x]
   (and (= word-nums (count x))
@@ -68,10 +66,10 @@
 (defn word32-bit-rotate-left
   [x n]
   {:pre [(word32? x)]}
-  (word32/word32-with-provenance
-   (word32/+
-    (word32/bit-shift-left x n)
-    (word32/bit-shift-right x (- 32 n)))
+  (w32/word32-with-provenance
+   (w32/+
+    (w32/bit-shift-left x n)
+    (w32/bit-shift-right x (- 32 n)))
    :bit-rotate-left
    [x n]))
 
@@ -83,7 +81,7 @@
     (if (= 80 t)
       chunk
       (let [new-word (word32-bit-rotate-left
-                      (word32/bit-xor
+                      (w32/bit-xor
                        (chunk (- t 3))
                        (chunk (- t 8))
                        (chunk (- t 14))
@@ -94,19 +92,19 @@
 (defn sha1-f
   [t B C D]
   (cond (<= 0 t 19)
-        (word32/bit-or
-         (word32/bit-and B C)
-         (word32/bit-and (word32/bit-not B) D))
+        (w32/bit-or
+         (w32/bit-and B C)
+         (w32/bit-and (w32/bit-not B) D))
 
         (or (<= 20 t 39)
             (<= 60 t 79))
-        (word32/bit-xor B C D)
+        (w32/bit-xor B C D)
 
         (<= 40 59)
-        (word32/bit-or
-         (word32/bit-and B C)
-         (word32/bit-and B D)
-         (word32/bit-and C D))))
+        (w32/bit-or
+         (w32/bit-and B C)
+         (w32/bit-and B D)
+         (w32/bit-and C D))))
 
 (defn sha1-K
   [t]
@@ -121,12 +119,12 @@
         [H0 H1 H2 H3 H4] state]
     (loop [[A B C D E] state, t 0]
       (if (= 80 t)
-        [(word32/+ A H0)
-         (word32/+ B H1)
-         (word32/+ C H2)
-         (word32/+ D H3)
-         (word32/+ E H4)]
-        (let [A' (word32/+
+        [(w32/+ A H0)
+         (w32/+ B H1)
+         (w32/+ C H2)
+         (w32/+ D H3)
+         (w32/+ E H4)]
+        (let [A' (w32/+
                   (word32-bit-rotate-left A 5)
                   (sha1-f t B C D)
                   E
