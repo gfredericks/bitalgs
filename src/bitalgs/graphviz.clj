@@ -16,9 +16,9 @@
   (with-out-str
     (println "digraph G {")
     (printf "node [%s];\n" (prop-str node-props))
+    (doseq [{:keys [id props]} nodes]
+      (printf "%s [%s];\n" id (prop-str props)))
     (doseq [{:keys [from to props]} edges]
       (printf "%s -> %s[%s];\n" from to
               (prop-str props)))
-    (doseq [{:keys [id props]} nodes]
-      (printf "%s [%s];\n" id (prop-str props)))
     (println "}")))

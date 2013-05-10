@@ -23,6 +23,17 @@
                     (into xs))))
       (vals ids))))
 
+(defn word-node
+  [w]
+  (let [{id :bitalgs/id, cat :category} (meta w)]
+    {:id id
+     :props {:label (s/upper-case (bytes->hex w))
+             :style "filled"
+             :fillcolor (case cat
+                          :constant "#EE8888"
+                          :input "#8888EE"
+                          "white")}}))
+
 (defn prov-data->graph
   [words]
   (apply merge-with into
@@ -33,9 +44,7 @@
                :let [{id :bitalgs/id
                       {:keys [inputs op-name]} :bitalgs/provenance}
                      (meta w)
-                     node
-                     {:id id
-                      :props {:label (s/upper-case (bytes->hex w))}}]]
+                     node (word-node w)]]
            (if inputs
              (let [op-id (str "op" id)
                    numeric-inputs (filter number? inputs)

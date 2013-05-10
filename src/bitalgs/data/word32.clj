@@ -18,6 +18,12 @@
                   (core/bit-shift-right long-val
                                         (* (- 3 i) 8)))))
 
+(def ^:dynamic *metadata* {})
+
+(defmacro with-data
+  [m & body]
+  `(binding [*metadata* (merge *metadata* ~m)] ~@body))
+
 (defn word32? [x] (instance? Word32 x))
 
 (defn word32-with-provenance
@@ -26,14 +32,17 @@
     (if (word32? long-val)
       long-val
       (->Word32 long-val))
-    {:bitalgs/provenance {:op-name op-name
-                          :inputs inputs}
-     :bitalgs/id (gensym "word32")}))
+    (merge {:bitalgs/provenance {:op-name op-name
+                                 :inputs inputs}
+            :bitalgs/id (gensym "word32")}
+           *metadata*)))
 
 (defn word32-with-id
-  [long-val]
+  [long-val & {:as attrs}]
   (with-meta (->Word32 long-val)
-    {:bitalgs/id (gensym "word32")}))
+    (merge {:bitalgs/id (gensym "word32")}
+           *metadata*
+           attrs)))
 
 (defn mask
   [x]

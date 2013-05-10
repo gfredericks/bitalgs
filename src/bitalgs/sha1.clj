@@ -12,14 +12,15 @@
              (bit-shift-right x 8)
              (inc i)))))
 
-(defn bytes->word32
+(defn input-word
   [[a b c d :as bytes]]
   {:pre [(= 4 (count bytes))]}
   (w32/word32-with-id
    (+ (* a 16777216)
       (* b 65536)
       (* c 256)
-      d)))
+      d)
+   :category :input))
 
 (defn pad-message
   [bytes]
@@ -37,19 +38,21 @@
   (w32/word32-with-id (Long/parseLong hex 16)))
 
 (def sha1-init-state
-  (map constant
-       ["67452301"
-        "EFCDAB89"
-        "98BADCFE"
-        "10325476"
-        "C3D2E1F0"]))
+  (w32/with-data {:category :constant}
+    (mapv constant
+          ["67452301"
+           "EFCDAB89"
+           "98BADCFE"
+           "10325476"
+           "C3D2E1F0"])))
 
 (def K-constants
-  (mapv constant
-        ["5A827999"
-         "6ED9EBA1"
-         "8F1BBCDC"
-         "CA62C1D6"]))
+  (w32/with-data {:category :constant}
+    (mapv constant
+          ["5A827999"
+           "6ED9EBA1"
+           "8F1BBCDC"
+           "CA62C1D6"])))
 
 (defn byte? [x] (<= 0 x 255))
 
@@ -135,7 +138,7 @@
        (pad-message)
        ;; switch from bytes to words
        (partition 4)
-       (map bytes->word32)
+       (map input-word)
        ;; chunks
        (partition 16)
        (reduce sha1-chunk sha1-init-state)))
