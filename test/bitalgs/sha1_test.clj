@@ -1,5 +1,5 @@
-(ns bitalgs.core-test
-  (:require [bitalgs.core :refer :all]
+(ns bitalgs.sha1-test
+  (:require [bitalgs.sha1 :refer :all]
             [bitalgs.data :as data]
             [clojure.test :refer :all]))
 
