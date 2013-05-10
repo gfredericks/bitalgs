@@ -26,14 +26,14 @@
     (if (word32? long-val)
       long-val
       (->Word32 long-val))
-    {::provenance {:op-name op-name
-                   :inputs inputs}
-     ::id (gensym "word32")}))
+    {:bitalgs/provenance {:op-name op-name
+                          :inputs inputs}
+     :bitalgs/id (gensym "word32")}))
 
 (defn word32-with-id
   [long-val]
   (with-meta (->Word32 long-val)
-    {::id (gensym "word32")}))
+    {:bitalgs/id (gensym "word32")}))
 
 (defn mask
   [x]
