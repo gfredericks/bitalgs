@@ -25,18 +25,6 @@
                     (into xs))))
       (vals ids))))
 
-(defn word-node
-  [w]
-  (let [{id :bitalgs/id, cat :category} (meta w)]
-    {:id id
-     :props {:label (s/upper-case (bytes->hex w))
-             :style "filled"
-             :fillcolor (case cat
-                          :constant "#EE8888"
-                          :input "#8888EE"
-                          :output "#88EE88"
-                          "white")}}))
-
 (defn op-label
   [kw & numeric-args]
   (case kw
@@ -45,7 +33,32 @@
     :bit-xor "\u2295"
     :bit-and "\u2227"
     :bit-not "!"
-    :bit-rotate-left (format "<<[%d]" (first numeric-args))))
+    :bit-rotate-left (format "\\<\\<[%d]" (first numeric-args))))
+
+(defn word-node
+  [w]
+  (let [{id :bitalgs/id,
+         cat :category
+         {:keys [inputs op-name]} :bitalgs/provenance}
+        (meta w)
+
+        hexed (s/upper-case (bytes->hex w))
+
+        numeric-inputs (filter number? inputs)
+
+        label (if op-name
+                (format "{ %s | %s }"
+                        (apply op-label op-name numeric-inputs)
+                        hexed)
+                hexed)]
+    {:id id
+     :props {:label label
+             :style "filled"
+             :fillcolor (case cat
+                          :constant "#EE8888"
+                          :input "#8888EE"
+                          :output "#88EE88"
+                          "white")}}))
 
 (defn prov-data->graph*
   [words]
@@ -55,27 +68,18 @@
                       {:keys [inputs op-name]} :bitalgs/provenance}
                      (meta w)
                      node (word-node w)]]
-           (if inputs
-             (let [op-id (str "op" id)
-                   numeric-inputs (filter number? inputs)
-                   op-node {:id op-id
-                            :props {:label (apply op-label op-name numeric-inputs)}}
-                   op-edge {:from op-id
-                            :to id}
-                   input-edges (for [input inputs
-                                     :when (w32/word32? input)]
-                                 {:from (wordid input)
-                                  :to op-id})]
-               {:nodes [node op-node]
-                :edges (apply vector op-edge input-edges)})
-             {:nodes [node]}))))
+           {:nodes [node]
+            :edges (for [input inputs
+                         :when (w32/word32? input)]
+                     {:from (wordid input)
+                      :to id})})))
 
 (defn prov-data->graph
   [words]
   (let [grouped
         (group-by (comp :category meta) words)]
     (merge (prov-data->graph* words)
-           {:node-props {:shape "rect"
+           {:node-props {:shape "record"
                          :style "rounded"}
             :graphs (for [category [:constant :input :output]
                           :let [props ({:constant {}
