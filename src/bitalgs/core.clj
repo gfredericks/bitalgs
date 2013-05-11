@@ -32,14 +32,12 @@
              :fillcolor (case cat
                           :constant "#EE8888"
                           :input "#8888EE"
+                          :output "#88EE88"
                           "white")}}))
 
-(defn prov-data->graph
+(defn prov-data->graph*
   [words]
   (apply merge-with into
-         {:props {}
-          :node-props {:shape "rect"
-                       :style "rounded"}}
          (for [w words
                :let [{id :bitalgs/id
                       {:keys [inputs op-name]} :bitalgs/provenance}
@@ -66,6 +64,22 @@
                {:nodes [node op-node]
                 :edges (apply vector op-edge input-edges)})
              {:nodes [node]}))))
+
+(defn prov-data->graph
+  [words]
+  (let [grouped
+        (group-by (comp :category meta) words)]
+    (merge (prov-data->graph* words)
+           {:node-props {:shape "rect"
+                         :style "rounded"}
+            :graphs (for [category [:constant :input :output]
+                          :let [props ({:constant {}
+                                        :input {:rank "source"}
+                                        :output {:rank "sink"}}
+                                       category)]]
+                      {:props props
+                       :nodes (map word-node
+                                   (grouped category))})})))
 
 (comment
   (->> (.getBytes "Message")

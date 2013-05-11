@@ -117,11 +117,12 @@
         [H0 H1 H2 H3 H4] state]
     (loop [[A B C D E] state, t 0]
       (if (= 80 t)
-        [(w32/+ A H0)
-         (w32/+ B H1)
-         (w32/+ C H2)
-         (w32/+ D H3)
-         (w32/+ E H4)]
+        (w32/with-data {:category :output}
+          [(w32/+ A H0)
+           (w32/+ B H1)
+           (w32/+ C H2)
+           (w32/+ D H3)
+           (w32/+ E H4)])
         (let [A' (w32/+
                   (word32-bit-rotate-left A 5)
                   (sha1-f t B C D)
