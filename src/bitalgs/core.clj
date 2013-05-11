@@ -35,6 +35,16 @@
                           :output "#88EE88"
                           "white")}}))
 
+(defn op-label
+  [kw & numeric-args]
+  (case kw
+    :+ "+"
+    :bit-or "\u2228"
+    :bit-xor "\u2295"
+    :bit-and "\u2227"
+    :bit-not "!"
+    :bit-rotate-left (format "<<[%d]" (first numeric-args))))
+
 (defn prov-data->graph*
   [words]
   (apply merge-with into
@@ -46,13 +56,8 @@
            (if inputs
              (let [op-id (str "op" id)
                    numeric-inputs (filter number? inputs)
-                   op-label (if (seq numeric-inputs)
-                              (format "%s[%s]"
-                                      (name op-name)
-                                      (s/join "," numeric-inputs))
-                              (name op-name))
                    op-node {:id op-id
-                            :props {:label op-label}}
+                            :props {:label (apply op-label op-name numeric-inputs)}}
                    op-edge {:from op-id
                             :to id}
                    input-edges (for [input inputs
