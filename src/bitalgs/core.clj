@@ -5,6 +5,8 @@
             [bitalgs.data.word32 :as w32]
             [clojure.string :as s]))
 
+(def wordid (comp :bitalgs/id meta))
+
 (defn provenance-data
   "Returns a sequence of Word32s"
   [words]
@@ -61,10 +63,8 @@
                    op-edge {:from op-id
                             :to id}
                    input-edges (for [input inputs
-                                     :when (w32/word32? input)
-                                     :let [{input-id :bitalgs/id}
-                                           (meta input)]]
-                                 {:from input-id
+                                     :when (w32/word32? input)]
+                                 {:from (wordid input)
                                   :to op-id})]
                {:nodes [node op-node]
                 :edges (apply vector op-edge input-edges)})
