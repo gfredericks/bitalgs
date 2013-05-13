@@ -33,6 +33,13 @@
         bytes'' (concat bytes' (repeat spacer-byte-count 0))]
     (concat bytes'' (word64->bytes (* 8 (count bytes))))))
 
+(defn prepare-message
+  [bytes]
+  (->> bytes
+       (pad-message)
+       (partition 4)
+       (map input-word)))
+
 (defn constant
   [hex]
   (w32/word32-with-id (Long/parseLong hex 16)))
@@ -136,10 +143,7 @@
   "Returns a sequence of words"
   [bytes]
   (->> bytes
-       (pad-message)
-       ;; switch from bytes to words
-       (partition 4)
-       (map input-word)
+       (prepare-message)
        ;; chunks
        (partition 16)
        (reduce sha1-chunk sha1-init-state)))

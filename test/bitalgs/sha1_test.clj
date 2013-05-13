@@ -5,10 +5,7 @@
 
 (deftest sha1-chunk-expansion-test
   (is (= (->> (.getBytes "Message")
-              (seq)
-              (pad-message)
-              (partition 4)
-              (map bytes->word32)
+              (prepare-message)
               (expand-chunk)
               (map data/bytes->hex)
               (apply str))
