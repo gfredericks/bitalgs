@@ -19,8 +19,7 @@
    (+ (* a 16777216)
       (* b 65536)
       (* c 256)
-      d)
-   :category :input))
+      d)))
 
 (defn pad-message
   [bytes]
@@ -33,12 +32,20 @@
         bytes'' (concat bytes' (repeat spacer-byte-count 0))]
     (concat bytes'' (word64->bytes (* 8 (count bytes))))))
 
+(defn assoc-meta
+  [x & kvs]
+  (with-meta x (apply assoc (meta x) kvs)))
+
 (defn prepare-message
   [bytes]
   (->> bytes
        (pad-message)
        (partition 4)
-       (map input-word)))
+       (map input-word)
+       (map-indexed (fn [i w]
+                      (assoc-meta w
+                                  :input-index i
+                                  :category :input)))))
 
 (defn constant
   [hex]
@@ -68,15 +75,14 @@
   (and (= word-nums (count x))
        (every? word32? x)))
 
-(defn word32-bit-rotate-left
+(w32/defop bit-rotate-left
   [x n]
   {:pre [(word32? x)]}
-  (w32/word32-with-provenance
+  ;; a little haxy?
+  (:long-val
    (w32/+
     (w32/bit-shift-left x n)
-    (w32/bit-shift-right x (- 32 n)))
-   :bit-rotate-left
-   [x n]))
+    (w32/bit-shift-right x (- 32 n)))))
 
 (defn expand-chunk
   [chunk]
@@ -85,7 +91,7 @@
   (loop [chunk (vec chunk), t 16]
     (if (= 80 t)
       chunk
-      (let [new-word (word32-bit-rotate-left
+      (let [new-word (bit-rotate-left
                       (w32/bit-xor
                        (chunk (- t 3))
                        (chunk (- t 8))
@@ -131,13 +137,15 @@
            (w32/+ D H3)
            (w32/+ E H4)])
         (let [A' (w32/+
-                  (word32-bit-rotate-left A 5)
+                  (bit-rotate-left A 5)
                   (sha1-f t B C D)
                   E
                   (chunk' t)
                   (sha1-K t))
-              C' (word32-bit-rotate-left B 30)]
-          (recur [A' A C' C D] (inc t)))))))
+              C' (bit-rotate-left B 30)
+              A'' (assoc-meta A' ::t t)
+              C'' (assoc-meta C' ::t t)]
+          (recur [A'' A C'' C D] (inc t)))))))
 
 (defn sha1
   "Returns a sequence of words"

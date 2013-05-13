@@ -18,13 +18,56 @@
                   (core/bit-shift-right long-val
                                         (* (- 3 i) 8)))))
 
+(alter-var-root #'->Word32
+                (fn [func]
+                  (fn [l]
+                    (assert (integer? l))
+                    (func l))))
+
 (def ^:dynamic *metadata* {})
 
 (defmacro with-data
   [m & body]
   `(binding [*metadata* (merge *metadata* ~m)] ~@body))
 
-(defn word32? [x] (instance? Word32 x))
+(defn word32? [x]
+  (and (instance? Word32 x)
+       (instance? Long (:long-val x))))
+
+(defn op-meta
+  [x form-meta op-name args]
+  (with-meta x
+    (merge *metadata*
+           {:bitalgs/provenance {:op-name op-name
+                                 :inputs args}
+            :bitalgs/id (gensym "word32")}
+           form-meta)))
+
+(defn qualify
+  [sym]
+  (symbol (str *ns*) (str sym)))
+
+(defn defop-helper
+  [fn-name arg-forms op-name form-meta]
+  `(let [args# [~@arg-forms]]
+     (op-meta (->Word32 (apply ~fn-name args#))
+              ~form-meta
+              ~(-> op-name name keyword)
+              args#)))
+
+(defmacro defop
+  [op-name & bodies]
+  (let [fn-name (symbol (str op-name "*"))]
+    `(do
+       (defn ~fn-name
+         ~@bodies)
+       (defmacro ~op-name
+         [& args#]
+         (defop-helper
+           '~(qualify fn-name)
+           args#
+           '~op-name
+           (meta ~'&form))))))
 
 (defn word32-with-provenance
   [long-val op-name inputs]
@@ -48,52 +91,31 @@
   [x]
   (core/bit-and 4294967295 x))
 
-(defn bit-and
+(defop bit-and
   [x y]
-  (word32-with-provenance
-   (core/bit-and (:long-val x)
-                 (:long-val y))
-   :bit-and
-   [x y]))
+  (core/bit-and (:long-val x)
+                (:long-val y)))
 
-(defn bit-not
+(defop bit-not
   [x]
-  (word32-with-provenance
-   (core/bit-not (:long-val x))
-   :bit-not
-   [x]))
+  (core/bit-not (:long-val x)))
 
-(defn bit-or
+(defop bit-or
   [x y & zs]
-  (word32-with-provenance
-   (apply core/bit-or (map :long-val (list* x y zs)))
-   :bit-or
-   (apply vector x y zs)))
+  (apply core/bit-or (map :long-val (list* x y zs))))
 
-(defn bit-xor
+(defop bit-xor
   [x y & zs]
-  (word32-with-provenance
-   (apply core/bit-xor (map :long-val (list* x y zs)))
-   :bit-xor
-   (apply vector x y zs)))
+  (apply core/bit-xor (map :long-val (list* x y zs))))
 
-(defn +
+(defop +
   [x y & zs]
-  (word32-with-provenance
-   (mask (apply core/+ (map :long-val (list* x y zs))))
-   :+
-   (apply vector x y zs)))
+  (mask (apply core/+ (map :long-val (list* x y zs)))))
 
-(defn bit-shift-left
+(defop bit-shift-left
   [x n]
-  (word32-with-provenance
-   (mask (core/bit-shift-left (:long-val x) n))
-   :bit-shift-left
-   [x n]))
+  (mask (core/bit-shift-left (:long-val x) n)))
 
-(defn bit-shift-right
+(defop bit-shift-right
   [x n]
-  (word32-with-provenance
-   (core/bit-shift-right (:long-val x) n)
-   :bit-shift-right
-   [x n]))
+  (core/bit-shift-right (:long-val x) n))
