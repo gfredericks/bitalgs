@@ -44,7 +44,7 @@
        (map input-word)
        (map-indexed (fn [i w]
                       (assoc-meta w
-                                  :input-index i
+                                  ::t i
                                   :category :input)))))
 
 (defn constant
@@ -52,7 +52,7 @@
   (w32/word32-with-id (Long/parseLong hex 16)))
 
 (def sha1-init-state
-  (w32/with-data {:category :constant}
+  (w32/with-data {:category :init-state, ::t 0}
     (mapv constant
           ["67452301"
            "EFCDAB89"
@@ -97,25 +97,31 @@
                        (chunk (- t 8))
                        (chunk (- t 14))
                        (chunk (- t 16)))
-                      1)]
-        (recur (conj chunk new-word) (inc t))))))
+                      1)
+            new-word' (assoc-meta new-word
+                                  :category :expansion
+                                  ::t t)]
+        (recur (conj chunk new-word') (inc t))))))
 
 (defn sha1-f
   [t B C D]
-  (cond (<= 0 t 19)
-        (w32/bit-or
-         (w32/bit-and B C)
-         (w32/bit-and (w32/bit-not B) D))
+  (assoc-meta
+   (cond (<= 0 t 19)
+         (w32/bit-or
+          (w32/bit-and B C)
+          (w32/bit-and (w32/bit-not B) D))
 
-        (or (<= 20 t 39)
-            (<= 60 t 79))
-        (w32/bit-xor B C D)
+         (or (<= 20 t 39)
+             (<= 60 t 79))
+         (w32/bit-xor B C D)
 
-        (<= 40 59)
-        (w32/bit-or
-         (w32/bit-and B C)
-         (w32/bit-and B D)
-         (w32/bit-and C D))))
+         (<= 40 59)
+         (w32/bit-or
+          (w32/bit-and B C)
+          (w32/bit-and B D)
+          (w32/bit-and C D)))
+   :category :f-result
+   ::t t))
 
 (defn sha1-K
   [t]
@@ -130,7 +136,7 @@
         [H0 H1 H2 H3 H4] state]
     (loop [[A B C D E] state, t 0]
       (if (= 80 t)
-        (w32/with-data {:category :output}
+        (w32/with-data {:category :output ::t (inc t)}
           [(w32/+ A H0)
            (w32/+ B H1)
            (w32/+ C H2)
@@ -143,8 +149,8 @@
                   (chunk' t)
                   (sha1-K t))
               C' (bit-rotate-left B 30)
-              A'' (assoc-meta A' ::t t)
-              C'' (assoc-meta C' ::t t)]
+              A'' (assoc-meta A' ::t (inc t) :category :A)
+              C'' (assoc-meta C' ::t (inc t) :category :C)]
           (recur [A'' A C'' C D] (inc t)))))))
 
 (defn sha1
