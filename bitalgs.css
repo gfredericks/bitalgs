@@ -1,0 +1,13 @@
+g.word rect {
+  stroke: black;
+  stroke-width: 0.04;
+  fill: #AAEEAA;
+}
+
+g.word text {
+  font-family: monospace;
+  fill: black;
+  font-size: 0.10pt;
+  text-anchor: middle;
+  /* alignment-baseline: middle; */
+}
