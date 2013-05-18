@@ -11,3 +11,8 @@ g.word text {
   text-anchor: middle;
   /* alignment-baseline: middle; */
 }
+
+g.word-arrow polyline {
+  stroke: black;
+  stroke-width: 0.02;
+}

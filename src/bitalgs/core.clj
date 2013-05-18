@@ -3,6 +3,7 @@
             [bitalgs.graphviz :as gv]
             [bitalgs.sha1 :refer [sha1] :as sha1]
             [bitalgs.data.word32 :as w32]
+            [bitalgs.util :refer [defmethods]]
             [clojure.string :as s]
             #_[clojure.core.logic :as l]
             #_[clojure.core.logic.fd :as fd]
@@ -94,11 +95,78 @@
                        :nodes (map word-node
                                    (grouped category))})})))
 
-(defn layout->svg
-  "Given a list of words and a map from word ids to [x y], returns
-   a hiccup svg structure."
-  [words layout]
-  (let [xs (->> layout vals (map first))
+(def period 4)
+
+;; should this one just be a giant case?
+(defmulti coords (fn [x t] (::sha1/type (meta x))))
+
+(defmethods coords [word t]
+
+  :f-result
+  [5 (+ 3 (* period t))]
+
+  :f1
+  [4 (+ 2 (* period t))]
+
+  :f2
+  [5 (+ 2 (* period t))]
+
+  :f3
+  [4 (+ 1 (* period t))]
+
+  :f4
+  [4 (+ 2 (* period t))]
+
+  :f5
+  [5 (+ 2 (* period t))]
+
+  :f6
+  [6 (+ 2 (* period t))]
+
+  :input
+  [0 (* period t)]
+
+  :expansion
+  [0 (* period t)]
+
+  :expansion'
+  [0 (dec (* period t))]
+
+  :A
+  [2 (* period t)]
+
+  :A'
+  [2 (dec (* period t))]
+
+  :C
+  [4 (* period t)]
+
+  :K
+  [7 0]
+
+  :init-state
+  [7 1]
+
+  :output
+  [1 (* period t)])
+
+(def h (-> (make-hierarchy)
+           (atom)))
+
+(defmulti arrow-joints
+  "Where the arrows points w1->w2"
+  (fn [w1 w2 w1-coords w2-coords]
+    [(::sha1/type w1) (::sha1/type w2)])
+  :hierarchy h)
+
+(defmethod arrow-joints :default
+  [_ _ start end]
+  [])
+
+(defn prov-data->svg
+  [words]
+  (let [layout (into {} (for [w words] [(wordid w) (coords w (::sha1/t (meta w)))]))
+        xs (->> layout vals (map first))
         ys (->> layout vals (map second))
         [minx maxx] (apply (juxt min max) xs)
         [miny maxy] (apply (juxt min max) ys)
@@ -114,44 +182,38 @@
            [:style (slurp "bitalgs.css")]
            (for [w words
                  :let [{id :bitalgs/id
-                        {:keys [inputs op-name]} :bitalgs/provenance}
+                        {:keys [inputs op-name]} :bitalgs/provenance
+                        type ::sha1/type
+                        t ::sha1/t}
                        (meta w)
 
                        hex (s/upper-case (bytes->hex w))
                        [x y] (layout id)]]
-             [:g.word
-              [:rect {:x (- x 0.4),
-                      :y (- y 0.1),
-                      :rx 0.05
-                      :ry 0.05
-                      :width 0.8,
-                      :height 0.2}]
-              [:text {:x x, :y (+ y 0.05)} hex]])))))
-
-(defn prov-data->layout
-  [words]
-  (let [period 4]
-    (into {}
-          (for [w words
-                :let [{type ::sha1/type, t ::sha1/t}
-                      (meta w)]]
-            [(wordid w)
-             (case type
-               :f-result  [5 (+ 3 (* period t))]
-               :input     [0 (* period t)]
-               :expansion [0 (* period t)]
-               :A         [2 (* period t)]
-               :C         [4 (* period t)]
-               :output    [1 (* period t)]
-               [-1 -1])]))))
+             (list [:g.word
+                    [:title (str (name type) ":" t)]
+                    [:rect {:x (- x 0.4),
+                            :y (- y 0.1),
+                            :rx 0.05
+                            :ry 0.05
+                            :width 0.8,
+                            :height 0.2}]
+                    [:text {:x x, :y (+ y 0.05)} hex]]
+                   (for [input inputs
+                         :when (w32/word32? input)
+                         :let [[x1 y1 :as p1] (layout (wordid input))
+                               [x2 y2 :as p2] [x y]
+                               joints (arrow-joints input w p1 p2)]]
+                     [:g.word-arrow
+                      [:polyline {:points (s/join " "
+                                                  (for [[x y] (concat [p1] joints [p2])]
+                                                    (str x "," y)))}]])))))))
 
 (let [words (->> (.getBytes "Message")
                  (seq)
                  (sha1)
-                 (provenance-data))
-      layout (prov-data->layout words)]
-  (spit "/home/gary/public/sha1.svg"
-        (html (layout->svg words layout))))
+                 (provenance-data))]
+  (spit "sha1.svg"
+        (html (prov-data->svg words))))
 
 (comment
 

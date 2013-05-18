@@ -61,7 +61,7 @@
            "C3D2E1F0"])))
 
 (def K-constants
-  (w32/with-data {::type :constant}
+  (w32/with-data {::type :K}
     (mapv constant
           ["5A827999"
            "6ED9EBA1"
@@ -93,7 +93,7 @@
       chunk
       (let [new-word
             (bit-rotate-left
-             ^{::type :expansion'}
+             ^{::type :expansion', ::t t}
              (w32/bit-xor
               (chunk (- t 3))
               (chunk (- t 8))
@@ -127,8 +127,7 @@
           ^{::type :f4} (w32/bit-and B C)
           ^{::type :f5} (w32/bit-and B D)
           ^{::type :f6} (w32/bit-and C D)))
-   ::type :f-result
-   ::t t))
+   ::type :f-result))
 
 (defn sha1-K
   [t]
@@ -149,17 +148,20 @@
            ^{:output :C} (w32/+ C H2)
            ^{:output :D} (w32/+ D H3)
            ^{:output :E} (w32/+ E H4)])
-        (let [A'
-              ^{::t (inc t), ::type :A}
-              (w32/+
-               ^{::type :A'}
-               (bit-rotate-left A 5)
-               (sha1-f t B C D)
-               E
-               (chunk' t)
-               (sha1-K t))
+        (let [t' (inc t)
 
-              C' ^{::t (inc t), ::type :C}
+              A'
+              (w32/with-data {::t t'}
+                ^{::type :A}
+                (w32/+
+                 ^{::type :A'}
+                 (bit-rotate-left A 5)
+                 (sha1-f t B C D)
+                 E
+                 (chunk' t)
+                 (sha1-K t)))
+
+              C' ^{::t t', ::type :C}
               (bit-rotate-left B 30)]
           (recur [A' A C' C D] (inc t)))))))
 
