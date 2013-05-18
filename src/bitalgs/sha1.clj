@@ -45,14 +45,14 @@
        (map-indexed (fn [i w]
                       (assoc-meta w
                                   ::t i
-                                  :category :input)))))
+                                  ::type :input)))))
 
 (defn constant
   [hex]
   (w32/word32-with-id (Long/parseLong hex 16)))
 
 (def sha1-init-state
-  (w32/with-data {:category :init-state, ::t 0}
+  (w32/with-data {::type :init-state, ::t 0}
     (mapv constant
           ["67452301"
            "EFCDAB89"
@@ -61,7 +61,7 @@
            "C3D2E1F0"])))
 
 (def K-constants
-  (w32/with-data {:category :constant}
+  (w32/with-data {::type :constant}
     (mapv constant
           ["5A827999"
            "6ED9EBA1"
@@ -99,7 +99,7 @@
                        (chunk (- t 16)))
                       1)
             new-word' (assoc-meta new-word
-                                  :category :expansion
+                                  ::type :expansion
                                   ::t t)]
         (recur (conj chunk new-word') (inc t))))))
 
@@ -123,7 +123,7 @@
           (w32/bit-and B C)
           (w32/bit-and B D)
           (w32/bit-and C D)))
-   :category :f-result
+   ::type :f-result
    ::t t))
 
 (defn sha1-K
@@ -139,20 +139,20 @@
         [H0 H1 H2 H3 H4] state]
     (loop [[A B C D E] state, t 0]
       (if (= 80 t)
-        (w32/with-data {:category :output ::t (inc t)}
+        (w32/with-data {::type :output, ::t (inc t)}
           [(w32/+ A H0)
            (w32/+ B H1)
            (w32/+ C H2)
            (w32/+ D H3)
            (w32/+ E H4)])
-        (let [A' ^{::t (inc t), :category :A}
+        (let [A' ^{::t (inc t), ::type :A}
               (w32/+
                (bit-rotate-left A 5)
                (sha1-f t B C D)
                E
                (chunk' t)
                (sha1-K t))
-              C' ^{::t (inc t), :category :C}
+              C' ^{::t (inc t), ::type :C}
               (bit-rotate-left B 30)]
           (recur [A' A C' C D] (inc t)))))))
 

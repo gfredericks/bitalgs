@@ -42,7 +42,7 @@
 (defn word-node
   [w]
   (let [{id :bitalgs/id,
-         cat :category
+         cat ::sha1/type
          {:keys [inputs op-name]} :bitalgs/provenance}
         (meta w)
 
@@ -81,7 +81,7 @@
 (defn prov-data->graph
   [words]
   (let [grouped
-        (group-by (comp :category meta) words)]
+        (group-by (comp ::sha1/type meta) words)]
     (merge (prov-data->graph* words)
            {:node-props {:shape "record"
                          :style "rounded"}
@@ -133,7 +133,7 @@
   (let [period 4]
     (into {}
           (for [w words
-                :let [{category :category, t ::sha1/t}
+                :let [{category ::sha1/type, t ::sha1/t}
                       (meta w)]]
             [(wordid w)
              (case category
