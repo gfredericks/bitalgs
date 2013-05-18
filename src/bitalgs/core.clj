@@ -133,10 +133,10 @@
   (let [period 4]
     (into {}
           (for [w words
-                :let [{category ::sha1/type, t ::sha1/t}
+                :let [{type ::sha1/type, t ::sha1/t}
                       (meta w)]]
             [(wordid w)
-             (case category
+             (case type
                :f-result  [5 (+ 3 (* period t))]
                :input     [0 (* period t)]
                :expansion [0 (* period t)]
