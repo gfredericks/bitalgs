@@ -15,4 +15,5 @@ g.word text {
 g.word-arrow polyline {
   stroke: black;
   stroke-width: 0.02;
+  fill: none;
 }

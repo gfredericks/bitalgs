@@ -151,16 +151,26 @@
   [1 (* period t)])
 
 (def h (-> (make-hierarchy)
+           (derive ::input ::lefty)
+           (derive ::expansion ::lefty)
+           (derive ::expansion' ::lefty)
            (atom)))
 
 (defmulti arrow-joints
   "Where the arrows points w1->w2"
   (fn [w1 w2 w1-coords w2-coords]
-    [(::sha1/type w1) (::sha1/type w2)])
+    (let [qualify #(keyword "bitalgs.core" (name %))
+          its-type #(qualify (::sha1/type (meta %)))]
+      [(its-type w1) (its-type w2)]))
   :hierarchy h)
 
+(defmethod arrow-joints [::lefty ::expansion']
+  [w1 w2 [x1 y1] [x2 y2]]
+  (let [x' (- x1 (/ y2 100))]
+    [[x' y1] [x' y2]]))
+
 (defmethod arrow-joints :default
-  [_ _ start end]
+  [_ _ _ _]
   [])
 
 (defn prov-data->svg
@@ -206,7 +216,7 @@
                      [:g.word-arrow
                       [:polyline {:points (s/join " "
                                                   (for [[x y] (concat [p1] joints [p2])]
-                                                    (str x "," y)))}]])))))))
+                                                    (str (double x) "," (double y))))}]])))))))
 
 (let [words (->> (.getBytes "Message")
                  (seq)
