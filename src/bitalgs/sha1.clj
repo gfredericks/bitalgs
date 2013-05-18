@@ -107,15 +107,18 @@
   [t B C D]
   (assoc-meta
    (cond (<= 0 t 19)
+         ^{:f-type 1}
          (w32/bit-or
           (w32/bit-and B C)
           (w32/bit-and (w32/bit-not B) D))
 
          (or (<= 20 t 39)
              (<= 60 t 79))
+         ^{:f-type 2}
          (w32/bit-xor B C D)
 
          (<= 40 59)
+         ^{:f-type 3}
          (w32/bit-or
           (w32/bit-and B C)
           (w32/bit-and B D)
@@ -142,16 +145,16 @@
            (w32/+ C H2)
            (w32/+ D H3)
            (w32/+ E H4)])
-        (let [A' (w32/+
-                  (bit-rotate-left A 5)
-                  (sha1-f t B C D)
-                  E
-                  (chunk' t)
-                  (sha1-K t))
-              C' (bit-rotate-left B 30)
-              A'' (assoc-meta A' ::t (inc t) :category :A)
-              C'' (assoc-meta C' ::t (inc t) :category :C)]
-          (recur [A'' A C'' C D] (inc t)))))))
+        (let [A' ^{::t (inc t), :category :A}
+              (w32/+
+               (bit-rotate-left A 5)
+               (sha1-f t B C D)
+               E
+               (chunk' t)
+               (sha1-K t))
+              C' ^{::t (inc t), :category :C}
+              (bit-rotate-left B 30)]
+          (recur [A' A C' C D] (inc t)))))))
 
 (defn sha1
   "Returns a sequence of words"
