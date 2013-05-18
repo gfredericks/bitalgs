@@ -91,13 +91,15 @@
   (loop [chunk (vec chunk), t 16]
     (if (= 80 t)
       chunk
-      (let [new-word (bit-rotate-left
-                      (w32/bit-xor
-                       (chunk (- t 3))
-                       (chunk (- t 8))
-                       (chunk (- t 14))
-                       (chunk (- t 16)))
-                      1)
+      (let [new-word
+            (bit-rotate-left
+             ^{::type :expansion'}
+             (w32/bit-xor
+              (chunk (- t 3))
+              (chunk (- t 8))
+              (chunk (- t 14))
+              (chunk (- t 16)))
+             1)
             new-word' (assoc-meta new-word
                                   ::type :expansion
                                   ::t t)]
@@ -109,8 +111,10 @@
    (cond (<= 0 t 19)
          ^{:f-type 1}
          (w32/bit-or
+          ^{::type :f1}
           (w32/bit-and B C)
-          (w32/bit-and (w32/bit-not B) D))
+          ^{::type :f2}
+          (w32/bit-and ^{::type :f3} (w32/bit-not B) D))
 
          (or (<= 20 t 39)
              (<= 60 t 79))
@@ -120,9 +124,9 @@
          (<= 40 59)
          ^{:f-type 3}
          (w32/bit-or
-          (w32/bit-and B C)
-          (w32/bit-and B D)
-          (w32/bit-and C D)))
+          ^{::type :f4} (w32/bit-and B C)
+          ^{::type :f5} (w32/bit-and B D)
+          ^{::type :f6} (w32/bit-and C D)))
    ::type :f-result
    ::t t))
 
@@ -140,18 +144,21 @@
     (loop [[A B C D E] state, t 0]
       (if (= 80 t)
         (w32/with-data {::type :output, ::t (inc t)}
-          [(w32/+ A H0)
-           (w32/+ B H1)
-           (w32/+ C H2)
-           (w32/+ D H3)
-           (w32/+ E H4)])
-        (let [A' ^{::t (inc t), ::type :A}
+          [^{:output :A} (w32/+ A H0)
+           ^{:output :B} (w32/+ B H1)
+           ^{:output :C} (w32/+ C H2)
+           ^{:output :D} (w32/+ D H3)
+           ^{:output :E} (w32/+ E H4)])
+        (let [A'
+              ^{::t (inc t), ::type :A}
               (w32/+
+               ^{::type :A'}
                (bit-rotate-left A 5)
                (sha1-f t B C D)
                E
                (chunk' t)
                (sha1-K t))
+
               C' ^{::t (inc t), ::type :C}
               (bit-rotate-left B 30)]
           (recur [A' A C' C D] (inc t)))))))
