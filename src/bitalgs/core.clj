@@ -7,7 +7,7 @@
             [clojure.string :as s]
             #_[clojure.core.logic :as l]
             #_[clojure.core.logic.fd :as fd]
-            [com.gfredericks.svg-wrangler :refer [svg*]]
+            [com.gfredericks.svg-wrangler :refer [svg*] :as svg]
             [hiccup.core :refer [html]]))
 
 (def wordid (comp :bitalgs/id meta))
@@ -31,14 +31,14 @@
       (vals ids))))
 
 (defn op-label
-  [kw & numeric-args]
+  [kw numeric-args]
   (case kw
     :+ "+"
     :bit-or "\u2228"
     :bit-xor "\u2295"
     :bit-and "\u2227"
     :bit-not "!"
-    :bit-rotate-left (format "\\<\\<[%d]" (first numeric-args))))
+    :bit-rotate-left (format "&lt;&lt;[%d]" (first numeric-args))))
 
 (defn word-node
   [w]
@@ -53,7 +53,7 @@
 
         label (if op-name
                 (format "{ %s | %s }"
-                        (apply op-label op-name numeric-inputs)
+                        (op-label op-name numeric-inputs)
                         hexed)
                 hexed)]
     {:id id
@@ -97,76 +97,81 @@
 
 (def period 4)
 
-;; should this one just be a giant case?
-(defmulti coords (fn [x t] (::sha1/type (meta x))))
+(defn local-type
+  [w]
+  (->> w
+       (meta)
+       (::sha1/type)
+       (name)
+       (keyword (namespace ::foo))))
+
+(def h (-> (make-hierarchy)
+           (derive ::input ::chunks)
+           (derive ::expansion ::chunks)
+           (derive ::expansion' ::chunks)
+           (derive ::input ::input')
+           (derive ::expansion ::input')
+           (atom)))
+
+(defmulti coords (fn [x t] (local-type x))
+  :hierarchy h)
 
 (defmethods coords [word t]
 
-  :f-result
+  ::f-result
   [5 (+ 3 (* period t))]
 
-  :f1
+  ::f1
   [4 (+ 2 (* period t))]
 
-  :f2
+  ::f2
   [5 (+ 2 (* period t))]
 
-  :f3
+  ::f3
   [4 (+ 1 (* period t))]
 
-  :f4
+  ::f4
   [4 (+ 2 (* period t))]
 
-  :f5
+  ::f5
   [5 (+ 2 (* period t))]
 
-  :f6
+  ::f6
   [6 (+ 2 (* period t))]
 
-  :input
+  ::input'
   [0 (* period t)]
 
-  :expansion
-  [0 (* period t)]
-
-  :expansion'
+  ::expansion'
   [0 (dec (* period t))]
 
-  :A
+  ::A
   [2 (* period t)]
 
-  :A'
+  ::A'
   [2 (dec (* period t))]
 
-  :C
+  ::C
   [4 (* period t)]
 
-  :K
+  ::K
   [7 0]
 
-  :init-state
+  ::init-state
   [7 1]
 
-  :output
+  ::output
   [1 (* period t)])
-
-(def h (-> (make-hierarchy)
-           (derive ::input ::lefty)
-           (derive ::expansion ::lefty)
-           (derive ::expansion' ::lefty)
-           (atom)))
 
 (defmulti arrow-joints
   "Where the arrows points w1->w2"
   (fn [w1 w2 w1-coords w2-coords]
-    (let [qualify #(keyword "bitalgs.core" (name %))
-          its-type #(qualify (::sha1/type (meta %)))]
-      [(its-type w1) (its-type w2)]))
+    [(local-type w1) (local-type w2)])
   :hierarchy h)
 
-(defmethod arrow-joints [::lefty ::expansion']
+(defmethod arrow-joints [::chunks ::expansion']
   [w1 w2 [x1 y1] [x2 y2]]
-  (let [x' (- x1 (/ y2 100))]
+  (let [x' (- x1 1/2 (/ (rem (::sha1/t (meta w1)) 16) 20))]
     [[x' y1] [x' y2]]))
 
 (defmethod arrow-joints :default
@@ -176,12 +181,47 @@
 (defn prov-data->svg
   [words]
   (let [layout (into {} (for [w words] [(wordid w) (coords w (::sha1/t (meta w)))]))
+        op-coords (fn [wordid]
+                    (let [[x y] (layout wordid)]
+                      [x (- y 0.4)]))
         xs (->> layout vals (map first))
         ys (->> layout vals (map second))
         [minx maxx] (apply (juxt min max) xs)
         [miny maxy] (apply (juxt min max) ys)
         width (+ 2 (- maxx minx))
-        height (+ 2 (- maxy miny))]
+        height (+ 2 (- maxy miny))
+        els (apply merge-with into
+                   (for [w words
+                         :let [{id :bitalgs/id
+                                {:keys [inputs op-name]} :bitalgs/provenance
+                                type ::sha1/type
+                                t ::sha1/t}
+                               (meta w)
+
+                               hex (s/upper-case (bytes->hex w))
+                               [x y] (layout id)]]
+                     {:arrows
+                      (for [input inputs
+                            :when (w32/word32? input)
+                            :let [p1 (layout (wordid input))
+                                  p2 (op-coords id)
+                                  joints (arrow-joints input w p1 p2)]]
+                        [:g.word-arrow
+                         (svg/polyline (concat [p1] joints [p2]))])
+
+                      :ops
+                      (if inputs
+                        (let [[x' y'] (op-coords id)]
+                          [[:g.op
+                            (svg/line x' y' x y)
+                            (svg/circle x' y' 0.2)
+                            (svg/text x' (+ y' 0.05) (op-label op-name (filter number? inputs)))]]))
+
+                      :words
+                      [[:g.word
+                        [:title (str (name type) ":" t)]
+                        (svg/rect (- x 0.4) (- y 0.1) 0.8 0.2 {:rx 0.05, :ry 0.05})
+                        (svg/text x (+ y 0.05) hex)]]}))]
     (svg* [(dec minx)
            (dec miny)
            width
@@ -190,33 +230,7 @@
           (int (* 1000 (/ height width)))
           (list
            [:style (slurp "bitalgs.css")]
-           (for [w words
-                 :let [{id :bitalgs/id
-                        {:keys [inputs op-name]} :bitalgs/provenance
-                        type ::sha1/type
-                        t ::sha1/t}
-                       (meta w)
-
-                       hex (s/upper-case (bytes->hex w))
-                       [x y] (layout id)]]
-             (list [:g.word
-                    [:title (str (name type) ":" t)]
-                    [:rect {:x (- x 0.4),
-                            :y (- y 0.1),
-                            :rx 0.05
-                            :ry 0.05
-                            :width 0.8,
-                            :height 0.2}]
-                    [:text {:x x, :y (+ y 0.05)} hex]]
-                   (for [input inputs
-                         :when (w32/word32? input)
-                         :let [[x1 y1 :as p1] (layout (wordid input))
-                               [x2 y2 :as p2] [x y]
-                               joints (arrow-joints input w p1 p2)]]
-                     [:g.word-arrow
-                      [:polyline {:points (s/join " "
-                                                  (for [[x y] (concat [p1] joints [p2])]
-                                                    (str (double x) "," (double y))))}]])))))))
+           (concat (:arrows els) (:ops els) (:words els))))))
 
 (let [words (->> (.getBytes "Message")
                  (seq)

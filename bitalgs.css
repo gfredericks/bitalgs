@@ -4,6 +4,24 @@ g.word rect {
   fill: #AAEEAA;
 }
 
+g.op circle {
+  stroke: black;
+  stroke-width: 0.02;
+  fill: white;
+}
+
+g.op text {
+  font-family: helvetica;
+  fill: black;
+  font-size: 0.10pt;
+  text-anchor: middle;
+}
+
+g.op line {
+  stroke: black;
+  stroke-width: 0.02;
+}
+
 g.word text {
   font-family: monospace;
   fill: black;
