@@ -153,8 +153,27 @@
     [(type w1) (type w2)])
   :hierarchy #'sha1/type-hierarchy)
 
+(defn rectilinear
+  "Given a start point, an end point, an initial orientation (:horiz or :vert),
+   and a sequence of coordinates which represent the constant
+   coordinate for all the non-initial and non-final line segments,
+   returns the points (including start and end) corresponding to a
+   rectilinear polyline where the line segments have the coordinates
+   given."
+  [[x1 y1 :as start] [x2 y2 :as end] orient & coords]
+  (if-let [[c & more] (seq coords)]
+    (cons start
+          (apply rectilinear
+                 (case orient
+                   :horiz [c y1]
+                   :vert  [x1 c])
+                 end
+                 ({:horiz :vert, :vert :horiz} orient)
+                 more))
+    [start (case orient :horiz [x2 y1] :vert [x1 y2]) end]))
+
 (defmethod arrow-joints [::sha1/chunks ::sha1/expansion']
-  [w1 w2 [x1 y1] [x2 y2]]
+  [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
   (let [x' (- x1 1/2 (/ (rem (::sha1/t (meta w1)) 16) 20))
         input-pos (as-> w2 <>
                         (meta <>)
@@ -164,88 +183,74 @@
                         (.indexOf <> (wordid w1)))
         y' (- y2 0.3 (* 0.1 input-pos))
         x'' (+ x2 -0.15 (* 0.1 input-pos))]
-    [[x' y1] [x' y'] [x'' y'] [x'' y2]]))
+    (rectilinear start end :horiz x' y' x'')))
 
 (defmethod arrow-joints [::sha1/input' ::sha1/A]
-  [w1 w2 [x1 y1] [x2 y2]]
-  [[x1 y2]])
+  [w1 w2 start end]
+  (rectilinear start end :vert))
 
 (defmethod arrow-joints [::sha1/f ::sha1/A]
-  [w1 w2 [x1 y1] [x2 y2]]
+  [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
   (let [x' (+ 1.5 x2)]
-    [[x' y1] [x' y2]]))
+    (rectilinear start end :horiz x')))
 
 (defmethod arrow-joints [::sha1/K ::sha1/A]
-  [w1 w2 [x1 y1] [x2 y2]]
+  [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
   (let [x'' (+ 0.1 x2)
         y' (- y2 0.35)]
-    [[x1 y']
-     [x'' y']
-     [x'' y2]]))
+    (rectilinear start end :vert y' x'')))
 
 (defmethod arrow-joints [::sha1/A' ::sha1/A]
-  [w1 w2 [x1 y1] [x2 y2]]
+  [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
   (let [x' (- x1 0.1)]
-    [[x' y1] [x' y2]]))
+    (rectilinear start end :horiz x')))
 
 (defmethod arrow-joints [::sha1/A-sup ::sha1/f1c]
-  [w1 w2 [x1 y1] [x2 y2]]
+  [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
   (let [y' (+ y1 2)
         x' (inc x1)]
-    [[x1 y']
-     [x' y']
-     [x' y2]]))
+    (rectilinear start end :vert y' x')))
 
 (defmethod arrow-joints [::sha1/A-sup ::sha1/f1a]
-  [w1 w2 [x1 y1] [x2 y2]]
+  [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
   (let [y' (+ y1 2)
         x' (inc x1)]
-    [[x1 y']
-     [x' y']
-     [x' y2]]))
+    (rectilinear start end :vert y' x')))
 
 (defmethod arrow-joints [::sha1/A-sup ::sha1/C]
-  [w1 w2 [x1 y1] [x2 y2]]
+  [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
   (let [y' (+ y1 2)
         x' (inc x1)
         y'' (- y2 1.8)
         x'' (+ 0.3 x')
         y''' (dec y2)]
-    [[x1 y']
-     [x' y']
-     [x' y'']
-     [x'' y'']
-     [x'' y''']
-     [x2 y''']]))
+    (rectilinear start end :vert
+                 y' x' y'' x'' y''')))
 
 (defmethod arrow-joints [::sha1/init ::sha1/output]
-  [w1 w2 [x1 y1] [x2 y2]]
+  [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
   (let [i (* 0.05 (::sha1/i (meta w1)))
 
         y' (+ y1 0.3 i)
         x' (+ 7 i)
         y'' (+ (dec y2) i)]
-    [[x1 y']
-     [x' y']
-     [x' y'']
-     [x2 y'']]))
+    (rectilinear start end :vert
+                 y' x' y'')))
 
 (defmethod arrow-joints [::sha1/f1c ::sha1/f1b]
-  [w1 w2 [x1 y1] [x2 y2]]
-  [[x2 y1]])
+  [w1 w2 start end]
+  (rectilinear start end :horiz))
 
 (defmethod arrow-joints [::sha1/f1a ::sha1/f]
-  [w1 w2 [x1 y1] [x2 y2]]
+  [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
   (let [x' (- x2 0.05)
         y' (- y2 0.3)]
-    [[x1 y']
-     [x' y']
-     [x' y2]]))
+    (rectilinear start end :vert y' x')))
 
 (defmethod arrow-joints [::sha1/f1b ::sha1/f]
-  [w1 w2 [x1 y1] [x2 y2]]
+  [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
   (let [x' (+ x2 0.05)]
-    [[x' y1] [x' y2]]))
+    (rectilinear start end :horiz x')))
 
 (defmethod arrow-joints :default
   [w1 w2 _ _]
