@@ -139,7 +139,7 @@
   [4 (* period (inc t))]
 
   ::sha1/K
-  [9 (dec (* period 20 (::sha1/i (meta word))))]
+  [8 (- (* period 20 (::sha1/i (meta word))) 0)]
 
   ::sha1/init
   [(+ 2 (::sha1/i (meta word))) -1]
@@ -177,11 +177,9 @@
 
 (defmethod arrow-joints [::sha1/K ::sha1/A]
   [w1 w2 [x1 y1] [x2 y2]]
-  (let [x' (dec x1)
-        x'' (+ 0.1 x2)
+  (let [x'' (+ 0.1 x2)
         y' (- y2 0.35)]
-    [[x' y1]
-     [x' y']
+    [[x1 y']
      [x'' y']
      [x'' y2]]))
 
