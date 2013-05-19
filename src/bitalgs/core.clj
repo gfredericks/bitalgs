@@ -186,71 +186,63 @@
     (rectilinear start end :horiz x' y' x'')))
 
 (defmethod arrow-joints [::sha1/input' ::sha1/A]
-  [w1 w2 start end]
+  [_ _ start end]
   (rectilinear start end :vert))
 
 (defmethod arrow-joints [::sha1/f ::sha1/A]
-  [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
-  (let [x' (+ 1.5 x2)]
-    (rectilinear start end :horiz x')))
+  [_ _ start [x2 y2 :as end]]
+  (rectilinear start end :horiz (+ 1.5 x2)))
 
 (defmethod arrow-joints [::sha1/K ::sha1/A]
-  [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
-  (let [x'' (+ 0.1 x2)
-        y' (- y2 0.35)]
-    (rectilinear start end :vert y' x'')))
+  [_ _ start [x2 y2 :as end]]
+  (rectilinear start end :vert (- y2 0.35) (+ 0.1 x2)))
 
 (defmethod arrow-joints [::sha1/A' ::sha1/A]
-  [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
-  (let [x' (- x1 0.1)]
-    (rectilinear start end :horiz x')))
+  [_ _ [x1 y1 :as start] end]
+  (rectilinear start end :horiz (- x1 0.1)))
 
 (defmethod arrow-joints [::sha1/A-sup ::sha1/f1c]
-  [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
-  (let [y' (+ y1 2)
-        x' (inc x1)]
-    (rectilinear start end :vert y' x')))
+  [_ _ [x1 y1 :as start] end]
+  (rectilinear start end :vert
+               (+ y1 2)
+               (inc x1)))
 
 (defmethod arrow-joints [::sha1/A-sup ::sha1/f1a]
-  [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
-  (let [y' (+ y1 2)
-        x' (inc x1)]
-    (rectilinear start end :vert y' x')))
+  [_ _ [x1 y1 :as start] end]
+  (rectilinear start end :vert
+               (+ y1 2)
+               (inc x1)))
 
 (defmethod arrow-joints [::sha1/A-sup ::sha1/C]
-  [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
-  (let [y' (+ y1 2)
-        x' (inc x1)
-        y'' (- y2 1.8)
-        x'' (+ 0.3 x')
-        y''' (dec y2)]
-    (rectilinear start end :vert
-                 y' x' y'' x'' y''')))
+  [_ _ [x1 y1 :as start] [x2 y2 :as end]]
+  (rectilinear start end :vert
+               (+ y1 2)
+               (inc x1)
+               (- y2 1.8)
+               (+ 0.3 (inc x1))
+               (dec y2)))
 
 (defmethod arrow-joints [::sha1/init ::sha1/output]
-  [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
-  (let [i (* 0.05 (::sha1/i (meta w1)))
-
-        y' (+ y1 0.3 i)
-        x' (+ 7 i)
-        y'' (+ (dec y2) i)]
+  [w1 _ [x1 y1 :as start] [x2 y2 :as end]]
+  (let [i (* 0.05 (::sha1/i (meta w1)))]
     (rectilinear start end :vert
-                 y' x' y'')))
+                 (+ y1 0.3 i)
+                 (+ 7 i)
+                 (+ (dec y2) i))))
 
 (defmethod arrow-joints [::sha1/f1c ::sha1/f1b]
-  [w1 w2 start end]
+  [_ _ start end]
   (rectilinear start end :horiz))
 
 (defmethod arrow-joints [::sha1/f1a ::sha1/f]
-  [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
-  (let [x' (- x2 0.05)
-        y' (- y2 0.3)]
-    (rectilinear start end :vert y' x')))
+  [_ _ start [x2 y2 :as end]]
+  (rectilinear start end :vert
+               (- y2 0.3)
+               (- x2 0.05)))
 
 (defmethod arrow-joints [::sha1/f1b ::sha1/f]
-  [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
-  (let [x' (+ x2 0.05)]
-    (rectilinear start end :horiz x')))
+  [_ _ start [x2 y2 :as end]]
+  (rectilinear start end :horiz (+ x2 0.05)))
 
 (defmethod arrow-joints :default
   [w1 w2 _ _]
