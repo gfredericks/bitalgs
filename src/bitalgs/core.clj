@@ -43,7 +43,7 @@
 (defn word-node
   [w]
   (let [{id :bitalgs/id,
-         cat ::sha1/type
+         cat :type
          {:keys [inputs op-name]} :bitalgs/provenance}
         (meta w)
 
@@ -82,7 +82,7 @@
 (defn prov-data->graph
   [words]
   (let [grouped
-        (group-by (comp ::sha1/type meta) words)]
+        (group-by (comp :type meta) words)]
     (merge (prov-data->graph* words)
            {:node-props {:shape "record"
                          :style "rounded"}
@@ -97,92 +97,63 @@
 
 (def period 4)
 
-(defn local-type
-  [w]
-  (->> w
-       (meta)
-       (::sha1/type)
-       (name)
-       (keyword (namespace ::foo))))
-
-(def h (-> (make-hierarchy)
-           (derive ::input ::chunks)
-           (derive ::expansion ::chunks)
-           (derive ::expansion' ::chunks)
-           (derive ::input ::input')
-           (derive ::expansion ::input')
-
-           ;; The ::init parent class
-           (derive ::init-A ::init)
-           (derive ::init-B ::init)
-           (derive ::init-C ::init)
-           (derive ::init-D ::init)
-           (derive ::init-E ::init)
-
-           (derive ::A ::A-sup)
-           (derive ::init-A ::A-sup)
-
-           (derive ::C ::C-sup)
-           (derive ::init-C ::C-sup)
-           ))
-
-(defmulti coords (fn [x t] (local-type x))
-  :hierarchy #'h)
+(defmulti coords (fn [x t] (type x))
+  :hierarchy #'sha1/type-hierarchy)
 
 (defmethods coords [word t]
 
-  ::f-result
+  ::sha1/f
   [5 (+ 3 (* period t))]
 
-  ::f1
+  ::sha1/f1a
   [4 (+ 2 (* period t))]
 
-  ::f2
+  ::sha1/f1b
   [5 (+ 2 (* period t))]
 
-  ::f3
+  ::sha1/f1c
   [4 (+ 1 (* period t))]
 
-  ::f4
+  ::sha1/f3a
   [4 (+ 2 (* period t))]
 
-  ::f5
+  ::sha1/f3b
   [5 (+ 2 (* period t))]
 
-  ::f6
+  ::sha1/f3c
   [6 (+ 2 (* period t))]
 
-  ::input'
+  ::sha1/input'
   [0 (+ 3 (* period t))]
 
-  ::expansion'
+  ::sha1/expansion'
   [0 (+ 2 (* period t))]
 
-  ::A
+  ::sha1/A
   [2 (* period (inc t))]
 
-  ::A'
+  ::sha1/A'
   [2 (dec (* period (inc t)))]
 
-  ::C
+  ::sha1/C
   [4 (* period (inc t))]
 
-  ::K
+  ::sha1/K
   [9 (dec (* period 20 (::sha1/i (meta word))))]
 
-  ::init
+  ::sha1/init
   [(+ 2 (::sha1/i (meta word))) -1]
 
-  ::output
+  ::sha1/output
   [(+ 2 (::sha1/i (meta word))) (+ 2 (* period 80))])
 
 (defmulti arrow-joints
   "Where the arrows points w1->w2"
   (fn [w1 w2 w1-coords w2-coords]
-    [(local-type w1) (local-type w2)])
-  :hierarchy #'h)
+    [(type w1) (type w2)])
+  :hierarchy #'sha1/type-hierarchy)
 
-(defmethod arrow-joints [::chunks ::expansion']
+(defmethod arrow-joints [::sha1/chunks ::sha1/expansion']
   [w1 w2 [x1 y1] [x2 y2]]
   (let [x' (- x1 1/2 (/ (rem (::sha1/t (meta w1)) 16) 20))
         input-pos (as-> w2 <>
@@ -195,16 +166,16 @@
         x'' (+ x2 -0.15 (* 0.1 input-pos))]
     [[x' y1] [x' y'] [x'' y'] [x'' y2]]))
 
-(defmethod arrow-joints [::input' ::A]
+(defmethod arrow-joints [::sha1/input' ::sha1/A]
   [w1 w2 [x1 y1] [x2 y2]]
   [[x1 y2]])
 
-(defmethod arrow-joints [::f-result ::A]
+(defmethod arrow-joints [::sha1/f ::sha1/A]
   [w1 w2 [x1 y1] [x2 y2]]
   (let [x' (+ 1.5 x2)]
     [[x' y1] [x' y2]]))
 
-(defmethod arrow-joints [::K ::A]
+(defmethod arrow-joints [::sha1/K ::sha1/A]
   [w1 w2 [x1 y1] [x2 y2]]
   (let [x' (dec x1)
         x'' (+ 0.1 x2)
@@ -214,12 +185,12 @@
      [x'' y']
      [x'' y2]]))
 
-(defmethod arrow-joints [::A' ::A]
+(defmethod arrow-joints [::sha1/A' ::sha1/A]
   [w1 w2 [x1 y1] [x2 y2]]
   (let [x' (- x1 0.1)]
     [[x' y1] [x' y2]]))
 
-(defmethod arrow-joints [::A-sup ::f3]
+(defmethod arrow-joints [::sha1/A-sup ::sha1/f1c]
   [w1 w2 [x1 y1] [x2 y2]]
   (let [y' (+ y1 2)
         x' (inc x1)]
@@ -227,7 +198,7 @@
      [x' y']
      [x' y2]]))
 
-(defmethod arrow-joints [::A-sup ::f1]
+(defmethod arrow-joints [::sha1/A-sup ::sha1/f1a]
   [w1 w2 [x1 y1] [x2 y2]]
   (let [y' (+ y1 2)
         x' (inc x1)]
@@ -235,7 +206,7 @@
      [x' y']
      [x' y2]]))
 
-(defmethod arrow-joints [::A-sup ::C]
+(defmethod arrow-joints [::sha1/A-sup ::sha1/C]
   [w1 w2 [x1 y1] [x2 y2]]
   (let [y' (+ y1 2)
         x' (inc x1)
@@ -249,7 +220,7 @@
      [x'' y''']
      [x2 y''']]))
 
-(defmethod arrow-joints [::init ::output]
+(defmethod arrow-joints [::sha1/init ::sha1/output]
   [w1 w2 [x1 y1] [x2 y2]]
   (let [i (* 0.05 (::sha1/i (meta w1)))
 
@@ -261,11 +232,11 @@
      [x' y'']
      [x2 y'']]))
 
-(defmethod arrow-joints [::f3 ::f2]
+(defmethod arrow-joints [::sha1/f1c ::sha1/f1b]
   [w1 w2 [x1 y1] [x2 y2]]
   [[x2 y1]])
 
-(defmethod arrow-joints [::f1 ::f-result]
+(defmethod arrow-joints [::sha1/f1a ::sha1/f]
   [w1 w2 [x1 y1] [x2 y2]]
   (let [x' (- x2 0.05)
         y' (- y2 0.3)]
@@ -273,14 +244,14 @@
      [x' y']
      [x' y2]]))
 
-(defmethod arrow-joints [::f2 ::f-result]
+(defmethod arrow-joints [::sha1/f1b ::sha1/f]
   [w1 w2 [x1 y1] [x2 y2]]
   (let [x' (+ x2 0.05)]
     [[x' y1] [x' y2]]))
 
 (defmethod arrow-joints :default
   [w1 w2 _ _]
-  (prn "UNPROCESSED" (map (comp name local-type) [w1 w2]))
+  (prn "UNPROCESSED" (map (comp symbol name type) [w1 w2]))
   [])
 
 (defn prov-data->svg
@@ -299,7 +270,7 @@
                    (for [w words
                          :let [{id :bitalgs/id
                                 {:keys [inputs op-name]} :bitalgs/provenance
-                                type ::sha1/type
+                                type :type
                                 t ::sha1/t}
                                (meta w)
 

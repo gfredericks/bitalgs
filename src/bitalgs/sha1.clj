@@ -3,6 +3,31 @@
              :as w32
              :refer [word32?]]))
 
+(def type-hierarchy
+  (-> (make-hierarchy)
+      (derive ::input ::chunks)
+      (derive ::expansion ::chunks)
+      (derive ::expansion' ::chunks)
+      (derive ::input ::input')
+      (derive ::expansion ::input')
+
+      ;; The ::init parent class
+      (derive ::init-A ::init)
+      (derive ::init-B ::init)
+      (derive ::init-C ::init)
+      (derive ::init-D ::init)
+      (derive ::init-E ::init)
+
+      (derive ::A ::A-sup)
+      (derive ::init-A ::A-sup)
+
+      (derive ::C ::C-sup)
+      (derive ::init-C ::C-sup)
+
+      (derive ::f1 ::f)
+      (derive ::f2 ::f)
+      (derive ::f3 ::f)))
+
 (defn word64->bytes
   [x]
   (loop [ret (), x x, i 0]
@@ -45,7 +70,7 @@
        (map-indexed (fn [i w]
                       (assoc-meta w
                                   ::t i
-                                  ::type :input)))))
+                                  :type ::input)))))
 
 (defn constant
   [hex]
@@ -54,9 +79,9 @@
 (def sha1-init-state
   (mapv
    (fn [i name s]
-     (assoc-meta (constant s) ::type name, ::i i))
+     (assoc-meta (constant s) :type name, ::i i))
    (range)
-   [:init-A :init-B :init-C :init-D :init-E]
+   [::init-A ::init-B ::init-C ::init-D ::init-E]
    ["67452301"
     "EFCDAB89"
     "98BADCFE"
@@ -66,7 +91,7 @@
 (def K-constants
   (mapv
    (fn [i s]
-     (assoc-meta (constant s) ::type :K, ::i i))
+     (assoc-meta (constant s) :type ::K, ::i i))
    (range)
    ["5A827999"
     "6ED9EBA1"
@@ -98,7 +123,7 @@
       chunk
       (let [new-word
             (bit-rotate-left
-             ^{::type :expansion', ::t t}
+             ^{:type ::expansion', ::t t}
              (w32/bit-xor
               (chunk (- t 3))
               (chunk (- t 8))
@@ -106,35 +131,31 @@
               (chunk (- t 16)))
              1)
             new-word' (assoc-meta new-word
-                                  ::type :expansion
+                                  :type ::expansion
                                   ::t t)]
         (recur (conj chunk new-word') (inc t))))))
 
 (defn sha1-f
   [t B C D]
-  (assoc-meta
-   (cond (<= 0 t 19)
-         ^{:f-type 1}
-         (w32/bit-or
-          ^{::type :f1}
-          (w32/bit-and B C)
-          ^{::type :f2}
-          (w32/bit-and ^{::type :f3} (w32/bit-not B) D))
+  (cond (<= 0 t 19)
+        ^{:type ::f1}
+        (w32/bit-or
+         ^{:type ::f1a}
+         (w32/bit-and B C)
+         ^{:type ::f1b}
+         (w32/bit-and ^{:type ::f1c} (w32/bit-not B) D))
 
-         (or (<= 20 t 39)
-             (<= 60 t 79))
-         ^{:f-type 2}
-         (w32/bit-xor B C D)
+        (or (<= 20 t 39)
+            (<= 60 t 79))
+        ^{:type ::f2}
+        (w32/bit-xor B C D)
 
-         (<= 40 59)
-         ^{:f-type 3}
-         (w32/bit-or
-          ^{::type :f4} (w32/bit-and B C)
-          ^{::type :f5} (w32/bit-and B D)
-          ^{::type :f6} (w32/bit-and C D)))
-   ;; TODO: consider using 3 different ::types here instead of :f-result;
-   ;; inheritance can help. Should the hierarchy be in this ns anyhow?
-   ::type :f-result))
+        (<= 40 59)
+        ^{:type ::f3}
+        (w32/bit-or
+         ^{:type ::f3a} (w32/bit-and B C)
+         ^{:type ::f3b} (w32/bit-and B D)
+         ^{:type ::f3c} (w32/bit-and C D))))
 
 (defn sha1-K
   [t]
@@ -152,7 +173,7 @@
         ;; Putting the output metadata here rather than in the sha1
         ;; function makes the implicit assumption that we're not
         ;; going to be doing graphs for more than one chunk.
-        (w32/with-data {::type :output, ::t t}
+        (w32/with-data {:type ::output, ::t t}
           [^{:output :A, ::i 0} (w32/+ A H0)
            ^{:output :B, ::i 1} (w32/+ B H1)
            ^{:output :C, ::i 2} (w32/+ C H2)
@@ -160,16 +181,16 @@
            ^{:output :E, ::i 4} (w32/+ E H4)])
         (let [A'
               (w32/with-data {::t t}
-                ^{::type :A}
+                ^{:type ::A}
                 (w32/+
-                 ^{::type :A'}
+                 ^{:type ::A'}
                  (bit-rotate-left A 5)
                  (sha1-f t B C D)
                  E
                  (chunk' t)
                  (sha1-K t)))
 
-              C' ^{::t t, ::type :C}
+              C' ^{::t t, :type ::C}
               (bit-rotate-left B 30)]
           (recur [A' A C' C D] (inc t)))))))
 
