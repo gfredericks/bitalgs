@@ -103,7 +103,7 @@
 (defmethods coords [word t]
 
   ::sha1/f
-  [5 (+ 3 (* period t))]
+  [4 (+ 3 (* period t))]
 
   ::sha1/f1a
   [4 (+ 2 (* period t))]
@@ -115,13 +115,13 @@
   [4 (+ 1 (* period t))]
 
   ::sha1/f3a
-  [4 (+ 2 (* period t))]
+  [3 (+ 2 (* period t))]
 
   ::sha1/f3b
-  [5 (+ 2 (* period t))]
+  [4 (+ 2 (* period t))]
 
   ::sha1/f3c
-  [6 (+ 2 (* period t))]
+  [5 (+ 2 (* period t))]
 
   ::sha1/input'
   [0 (+ 3 (* period t))]
@@ -292,7 +292,11 @@
                       [[:g.word
                         [:title (str (name type) ":" t)]
                         (svg/rect (- x 0.4) (- y 0.1) 0.8 0.2 {:rx 0.05, :ry 0.05})
-                        (svg/text x (+ y 0.05) hex)]]}))]
+                        (svg/text x (+ y 0.05) hex)]]}))
+        f-boxes (for [i (range 80)]
+                  [:g.f-box
+                   (svg/rect 2.5 (+ 0.25 (* i period))
+                             3 3)])]
     (svg* [(- minx 2)
            (- miny 2)
            width
@@ -301,7 +305,7 @@
           (int (* 1000 (/ height width)))
           (list
            [:style (slurp "bitalgs.css")]
-           (concat (:arrows els) (:ops els) (:words els))))))
+           (concat f-boxes (:arrows els) (:ops els) (:words els))))))
 
 (let [words (->> (.getBytes "Message")
                  (seq)

@@ -35,3 +35,9 @@ g.word-arrow polyline {
   stroke-width: 0.02;
   fill: none;
 }
+
+g.f-box rect {
+  stroke: black;
+  stroke-width: 0.04;
+  fill: #AAAAEE;
+}
