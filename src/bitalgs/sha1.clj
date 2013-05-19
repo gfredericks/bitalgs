@@ -52,21 +52,26 @@
   (w32/word32-with-id (Long/parseLong hex 16)))
 
 (def sha1-init-state
-  (w32/with-data {::type :init-state, ::t 0}
-    (mapv constant
-          ["67452301"
-           "EFCDAB89"
-           "98BADCFE"
-           "10325476"
-           "C3D2E1F0"])))
+  (mapv
+   (fn [i name s]
+     (assoc-meta (constant s) ::type name, ::i i))
+   (range)
+   [:init-A :init-B :init-C :init-D :init-E]
+   ["67452301"
+    "EFCDAB89"
+    "98BADCFE"
+    "10325476"
+    "C3D2E1F0"]))
 
 (def K-constants
-  (w32/with-data {::type :K}
-    (mapv constant
-          ["5A827999"
-           "6ED9EBA1"
-           "8F1BBCDC"
-           "CA62C1D6"])))
+  (mapv
+   (fn [i s]
+     (assoc-meta (constant s) ::type :K, ::i i))
+   (range)
+   ["5A827999"
+    "6ED9EBA1"
+    "8F1BBCDC"
+    "CA62C1D6"]))
 
 (defn byte? [x] (<= 0 x 255))
 
@@ -127,6 +132,8 @@
           ^{::type :f4} (w32/bit-and B C)
           ^{::type :f5} (w32/bit-and B D)
           ^{::type :f6} (w32/bit-and C D)))
+   ;; TODO: consider using 3 different ::types here instead of :f-result;
+   ;; inheritance can help. Should the hierarchy be in this ns anyhow?
    ::type :f-result))
 
 (defn sha1-K
@@ -142,16 +149,17 @@
         [H0 H1 H2 H3 H4] state]
     (loop [[A B C D E] state, t 0]
       (if (= 80 t)
-        (w32/with-data {::type :output, ::t (inc t)}
-          [^{:output :A} (w32/+ A H0)
-           ^{:output :B} (w32/+ B H1)
-           ^{:output :C} (w32/+ C H2)
-           ^{:output :D} (w32/+ D H3)
-           ^{:output :E} (w32/+ E H4)])
-        (let [t' (inc t)
-
-              A'
-              (w32/with-data {::t t'}
+        ;; Putting the output metadata here rather than in the sha1
+        ;; function makes the implicit assumption that we're not
+        ;; going to be doing graphs for more than one chunk.
+        (w32/with-data {::type :output, ::t t}
+          [^{:output :A, ::i 0} (w32/+ A H0)
+           ^{:output :B, ::i 1} (w32/+ B H1)
+           ^{:output :C, ::i 2} (w32/+ C H2)
+           ^{:output :D, ::i 3} (w32/+ D H3)
+           ^{:output :E, ::i 4} (w32/+ E H4)])
+        (let [A'
+              (w32/with-data {::t t}
                 ^{::type :A}
                 (w32/+
                  ^{::type :A'}
@@ -161,7 +169,7 @@
                  (chunk' t)
                  (sha1-K t)))
 
-              C' ^{::t t', ::type :C}
+              C' ^{::t t, ::type :C}
               (bit-rotate-left B 30)]
           (recur [A' A C' C D] (inc t)))))))
 

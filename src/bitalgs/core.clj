@@ -111,10 +111,23 @@
            (derive ::expansion' ::chunks)
            (derive ::input ::input')
            (derive ::expansion ::input')
-           (atom)))
+
+           ;; The ::init parent class
+           (derive ::init-A ::init)
+           (derive ::init-B ::init)
+           (derive ::init-C ::init)
+           (derive ::init-D ::init)
+           (derive ::init-E ::init)
+
+           (derive ::A ::A-sup)
+           (derive ::init-A ::A-sup)
+
+           (derive ::C ::C-sup)
+           (derive ::init-C ::C-sup)
+           ))
 
 (defmulti coords (fn [x t] (local-type x))
-  :hierarchy h)
+  :hierarchy #'h)
 
 (defmethods coords [word t]
 
@@ -140,42 +153,134 @@
   [6 (+ 2 (* period t))]
 
   ::input'
-  [0 (* period t)]
+  [0 (+ 3 (* period t))]
 
   ::expansion'
-  [0 (dec (* period t))]
+  [0 (+ 2 (* period t))]
 
   ::A
-  [2 (* period t)]
+  [2 (* period (inc t))]
 
   ::A'
-  [2 (dec (* period t))]
+  [2 (dec (* period (inc t)))]
 
   ::C
-  [4 (* period t)]
+  [4 (* period (inc t))]
 
   ::K
-  [7 0]
+  [9 (dec (* period 20 (::sha1/i (meta word))))]
 
-  ::init-state
-  [7 1]
+  ::init
+  [(+ 2 (::sha1/i (meta word))) -1]
 
   ::output
-  [1 (* period t)])
+  [(+ 2 (::sha1/i (meta word))) (+ 2 (* period 80))])
 
 (defmulti arrow-joints
   "Where the arrows points w1->w2"
   (fn [w1 w2 w1-coords w2-coords]
     [(local-type w1) (local-type w2)])
-  :hierarchy h)
+  :hierarchy #'h)
 
 (defmethod arrow-joints [::chunks ::expansion']
   [w1 w2 [x1 y1] [x2 y2]]
-  (let [x' (- x1 1/2 (/ (rem (::sha1/t (meta w1)) 16) 20))]
+  (let [x' (- x1 1/2 (/ (rem (::sha1/t (meta w1)) 16) 20))
+        input-pos (as-> w2 <>
+                        (meta <>)
+                        (get-in <> [:bitalgs/provenance :inputs])
+                        (remove number? <>)
+                        (map wordid <>)
+                        (.indexOf <> (wordid w1)))
+        y' (- y2 0.3 (* 0.1 input-pos))
+        x'' (+ x2 -0.15 (* 0.1 input-pos))]
+    [[x' y1] [x' y'] [x'' y'] [x'' y2]]))
+
+(defmethod arrow-joints [::input' ::A]
+  [w1 w2 [x1 y1] [x2 y2]]
+  [[x1 y2]])
+
+(defmethod arrow-joints [::f-result ::A]
+  [w1 w2 [x1 y1] [x2 y2]]
+  (let [x' (+ 1.5 x2)]
+    [[x' y1] [x' y2]]))
+
+(defmethod arrow-joints [::K ::A]
+  [w1 w2 [x1 y1] [x2 y2]]
+  (let [x' (dec x1)
+        x'' (+ 0.1 x2)
+        y' (- y2 0.35)]
+    [[x' y1]
+     [x' y']
+     [x'' y']
+     [x'' y2]]))
+
+(defmethod arrow-joints [::A' ::A]
+  [w1 w2 [x1 y1] [x2 y2]]
+  (let [x' (- x1 0.1)]
+    [[x' y1] [x' y2]]))
+
+(defmethod arrow-joints [::A-sup ::f3]
+  [w1 w2 [x1 y1] [x2 y2]]
+  (let [y' (+ y1 2)
+        x' (inc x1)]
+    [[x1 y']
+     [x' y']
+     [x' y2]]))
+
+(defmethod arrow-joints [::A-sup ::f1]
+  [w1 w2 [x1 y1] [x2 y2]]
+  (let [y' (+ y1 2)
+        x' (inc x1)]
+    [[x1 y']
+     [x' y']
+     [x' y2]]))
+
+(defmethod arrow-joints [::A-sup ::C]
+  [w1 w2 [x1 y1] [x2 y2]]
+  (let [y' (+ y1 2)
+        x' (inc x1)
+        y'' (- y2 1.8)
+        x'' (+ 0.3 x')
+        y''' (dec y2)]
+    [[x1 y']
+     [x' y']
+     [x' y'']
+     [x'' y'']
+     [x'' y''']
+     [x2 y''']]))
+
+(defmethod arrow-joints [::init ::output]
+  [w1 w2 [x1 y1] [x2 y2]]
+  (let [i (* 0.05 (::sha1/i (meta w1)))
+
+        y' (+ y1 0.3 i)
+        x' (+ 7 i)
+        y'' (+ (dec y2) i)]
+    [[x1 y']
+     [x' y']
+     [x' y'']
+     [x2 y'']]))
+
+(defmethod arrow-joints [::f3 ::f2]
+  [w1 w2 [x1 y1] [x2 y2]]
+  [[x2 y1]])
+
+(defmethod arrow-joints [::f1 ::f-result]
+  [w1 w2 [x1 y1] [x2 y2]]
+  (let [x' (- x2 0.05)
+        y' (- y2 0.3)]
+    [[x1 y']
+     [x' y']
+     [x' y2]]))
+
+(defmethod arrow-joints [::f2 ::f-result]
+  [w1 w2 [x1 y1] [x2 y2]]
+  (let [x' (+ x2 0.05)]
     [[x' y1] [x' y2]]))
 
 (defmethod arrow-joints :default
-  [_ _ _ _]
+  [w1 w2 _ _]
+  (prn "UNPROCESSED" (map (comp name local-type) [w1 w2]))
   [])
 
 (defn prov-data->svg
@@ -188,8 +293,8 @@
         ys (->> layout vals (map second))
         [minx maxx] (apply (juxt min max) xs)
         [miny maxy] (apply (juxt min max) ys)
-        width (+ 2 (- maxx minx))
-        height (+ 2 (- maxy miny))
+        width (+ 4 (- maxx minx))
+        height (+ 4 (- maxy miny))
         els (apply merge-with into
                    (for [w words
                          :let [{id :bitalgs/id
@@ -222,8 +327,8 @@
                         [:title (str (name type) ":" t)]
                         (svg/rect (- x 0.4) (- y 0.1) 0.8 0.2 {:rx 0.05, :ry 0.05})
                         (svg/text x (+ y 0.05) hex)]]}))]
-    (svg* [(dec minx)
-           (dec miny)
+    (svg* [(- minx 2)
+           (- miny 2)
            width
            height]
           1000
