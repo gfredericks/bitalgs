@@ -95,7 +95,20 @@
                        :nodes (map word-node
                                    (grouped category))})})))
 
-(def period 4)
+(def period 6)
+(def line-sep 0.1)
+
+(defn f-box-dims
+  [t]
+  [2.5 (+ 1.25 (* t period)) 3 3])
+
+(defn f-box-input-anchors
+  [t i]
+  [(+ 3 i) (+ 1.25 (* t period))])
+
+(defn f-box-output-anchor
+  [t]
+  [4 (+ 4.25 (* t period))])
 
 (defmulti coords (fn [x t] (type x))
   :hierarchy #'sha1/type-hierarchy)
@@ -103,46 +116,55 @@
 (defmethods coords [word t]
 
   ::sha1/f
-  [4 (+ 3 (* period t))]
+  [4 (+ 4 (* period t))]
 
   ::sha1/f1a
-  [4 (+ 2 (* period t))]
+  [4 (+ 3 (* period t))]
 
   ::sha1/f1b
-  [5 (+ 2 (* period t))]
+  [5 (+ 3 (* period t))]
 
   ::sha1/f1c
-  [4 (+ 1 (* period t))]
-
-  ::sha1/f3a
   [3 (+ 2 (* period t))]
 
+  ::sha1/f3a
+  [3 (+ 3 (* period t))]
+
   ::sha1/f3b
-  [4 (+ 2 (* period t))]
+  [4 (+ 3 (* period t))]
 
   ::sha1/f3c
-  [5 (+ 2 (* period t))]
+  [5 (+ 3 (* period t))]
 
   ::sha1/input'
-  [0 (+ 3 (* period t))]
+  [0 (+ 5 (* period t))]
 
   ::sha1/expansion'
-  [0 (+ 2 (* period t))]
+  [0 (+ 4 (* period t))]
 
   ::sha1/A
   [2 (* period (inc t))]
 
   ::sha1/A'
-  [2 (dec (* period (inc t)))]
+  [2 (- (* period (inc t)) 2)]
+
+  ::sha1/B
+  [3 (* period (inc t))]
 
   ::sha1/C
   [4 (* period (inc t))]
+
+  ::sha1/D
+  [5 (* period (inc t))]
+
+  ::sha1/E
+  [6 (* period (inc t))]
 
   ::sha1/K
   [8 (- (* period 20 (::sha1/i (meta word))) 0)]
 
   ::sha1/init
-  [(+ 2 (::sha1/i (meta word))) -1]
+  [(+ 2 (::sha1/i (meta word))) 0]
 
   ::sha1/output
   [(+ 2 (::sha1/i (meta word))) (+ 2 (* period 80))])
@@ -168,12 +190,22 @@
                    :horiz [c y1]
                    :vert  [x1 c])
                  end
-                 ({:horiz :vert, :vert :horiz} orient)
+               ({:horiz :vert, :vert :horiz} orient)
                  more))
     [start (case orient :horiz [x2 y1] :vert [x1 y2]) end]))
 
-(defmethod arrow-joints [::sha1/chunks ::sha1/expansion']
-  [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
+(defn renaming-line
+  [start end y1 i]
+  (let [sep (* i line-sep)]
+    (rectilinear start end :vert
+                 (+ y1 0.6 sep)
+                 (+ 6.5 (- sep))
+                 (+ y1 period -0.75 (- sep)))))
+
+(defmethods arrow-joints [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
+
+
+  [::sha1/chunks ::sha1/expansion']
   (let [x' (- x1 1/2 (/ (rem (::sha1/t (meta w1)) 16) 20))
         input-pos (as-> w2 <>
                         (meta <>)
@@ -183,71 +215,138 @@
                         (.indexOf <> (wordid w1)))
         y' (- y2 0.3 (* 0.1 input-pos))
         x'' (+ x2 -0.15 (* 0.1 input-pos))]
-    (rectilinear start end :horiz x' y' x'')))
+    (rectilinear start end :horiz x' y' x''))
 
-(defmethod arrow-joints [::sha1/input' ::sha1/A]
-  [_ _ start end]
-  (rectilinear start end :vert))
 
-(defmethod arrow-joints [::sha1/f ::sha1/A]
-  [_ _ start [x2 y2 :as end]]
-  (rectilinear start end :horiz (+ 1.5 x2)))
+  [::sha1/input' ::sha1/A]
+  (rectilinear start end :vert)
 
-(defmethod arrow-joints [::sha1/K ::sha1/A]
-  [_ _ start [x2 y2 :as end]]
-  (rectilinear start end :vert (- y2 0.35) (+ 0.1 x2)))
 
-(defmethod arrow-joints [::sha1/A' ::sha1/A]
-  [_ _ [x1 y1 :as start] end]
-  (rectilinear start end :horiz (- x1 0.1)))
+  [::sha1/f ::sha1/A]
+  (rectilinear start end :vert (- y2 (* 10 line-sep)))
 
-(defmethod arrow-joints [::sha1/A-sup ::sha1/f1c]
-  [_ _ [x1 y1 :as start] end]
+
+  [::sha1/K ::sha1/A]
+  (rectilinear start end :vert (- y2 (* 8 line-sep)) (+ 0.25 x2))
+
+
+  [::sha1/A' ::sha1/A]
+  (rectilinear start end :horiz (- x1 0.1))
+
+
+  [::sha1/E-sup ::sha1/A]
+  (rectilinear start end :vert (- y2 (* 9 line-sep)) (+ x2 line-sep))
+
+
+  [::sha1/A-sup ::sha1/f1c]
   (rectilinear start end :vert
                (+ y1 2)
-               (inc x1)))
+               (inc x1))
 
-(defmethod arrow-joints [::sha1/A-sup ::sha1/f1a]
-  [_ _ [x1 y1 :as start] end]
+
+  [::sha1/A-sup ::sha1/f1a]
   (rectilinear start end :vert
                (+ y1 2)
-               (inc x1)))
+               (inc x1))
 
-(defmethod arrow-joints [::sha1/A-sup ::sha1/C]
-  [_ _ [x1 y1 :as start] [x2 y2 :as end]]
+  ;;
+  ;; The four lines that are mostly renamings
+  ;;
+
+  [::sha1/A-sup ::sha1/B]
+  (renaming-line start end y1 3)
+  [::sha1/B-sup ::sha1/C]
+  (renaming-line start end y1 2)
+  [::sha1/C-sup ::sha1/D]
+  (renaming-line start end y1 1)
+  [::sha1/D-sup ::sha1/E]
+  (renaming-line start end y1 0)
+
+
+  ;;
+  ;; f-stuff
+  ;;
+
+  [::sha1/B-sup ::sha1/f1a]
   (rectilinear start end :vert
-               (+ y1 2)
-               (inc x1)
-               (- y2 1.8)
-               (+ 0.3 (inc x1))
-               (dec y2)))
+               (- y2 1.25)
+               (- x2 0.5))
 
-(defmethod arrow-joints [::sha1/init ::sha1/output]
-  [w1 _ [x1 y1 :as start] [x2 y2 :as end]]
+  [::sha1/C-sup ::sha1/f1a]
+  (rectilinear start end :vert)
+
+  [::sha1/f1c ::sha1/f1b]
+  (rectilinear start end :horiz (- x2 0.5))
+
+  [::sha1/f1a ::sha1/f1]
+  (rectilinear start end :vert)
+
+  [::sha1/f1b ::sha1/f1]
+  (rectilinear start end :vert)
+
+
+  [::sha1/f1a ::sha1/f]
+  (rectilinear start end :vert
+               (- y2 0.3)
+               (- x2 0.05))
+
+
+  [::sha1/f1b ::sha1/f]
+  (rectilinear start end :horiz (+ x2 0.05))
+
+  [::sha1/B ::sha1/f2]
+  (rectilinear start end :vert)
+
+  [::sha1/C ::sha1/f2]
+  (rectilinear start end :vert)
+
+  [::sha1/D ::sha1/f2]
+  (rectilinear start end :vert)
+
+  [::sha1/f3a ::sha1/f3]
+  (rectilinear start end :vert)
+
+  [::sha1/f3b ::sha1/f3]
+  (rectilinear start end :vert)
+
+  [::sha1/f3c ::sha1/f3]
+  (rectilinear start end :vert)
+
+  [::sha1/B ::sha1/f3a]
+  (rectilinear start end :vert)
+  [::sha1/B ::sha1/f3b]
+  (rectilinear start end :vert
+               (- y2 1/2)
+               (- x2 (/ line-sep 2)))
+  [::sha1/C ::sha1/f3a]
+  (rectilinear start end :vert
+               (- y2 1)
+               (+ x2 1/2))
+  [::sha1/C ::sha1/f3c]
+  (rectilinear start end :vert
+               (- y2 1)
+               (- x2 1/2))
+  [::sha1/D ::sha1/f3b]
+  (rectilinear start end :vert
+               (- y2 1/2)
+               (+ x2 (/ line-sep 2)))
+  [::sha1/D ::sha1/f3c]
+  (rectilinear start end :vert)
+
+  [::sha1/init ::sha1/output]
   (let [i (* 0.05 (::sha1/i (meta w1)))]
     (rectilinear start end :vert
                  (+ y1 0.3 i)
                  (+ 7 i)
-                 (+ (dec y2) i))))
+                 (+ (dec y2) i)))
 
-(defmethod arrow-joints [::sha1/f1c ::sha1/f1b]
-  [_ _ start end]
-  (rectilinear start end :horiz))
-
-(defmethod arrow-joints [::sha1/f1a ::sha1/f]
-  [_ _ start [x2 y2 :as end]]
-  (rectilinear start end :vert
-               (- y2 0.3)
-               (- x2 0.05)))
-
-(defmethod arrow-joints [::sha1/f1b ::sha1/f]
-  [_ _ start [x2 y2 :as end]]
-  (rectilinear start end :horiz (+ x2 0.05)))
+)
 
 (defmethod arrow-joints :default
   [w1 w2 _ _]
   (prn "UNPROCESSED" (map (comp symbol name type) [w1 w2]))
   [])
+
 
 (defn prov-data->svg
   [words]
@@ -274,14 +373,15 @@
                      {:arrows
                       (for [input inputs
                             :when (w32/word32? input)
-                            :let [p1 (layout (wordid input))
-                                  p2 (op-coords id)
+                            :let [rename? (= :rename op-name)
+                                  p1 (layout (wordid input))
+                                  p2 (if rename? [x y] (op-coords id))
                                   joints (arrow-joints input w p1 p2)]]
                         [:g.word-arrow
                          (svg/polyline (concat [p1] joints [p2]))])
 
                       :ops
-                      (if inputs
+                      (if (and inputs (not= op-name :rename))
                         (let [[x' y'] (op-coords id)]
                           [[:g.op
                             (svg/line x' y' x y)
@@ -295,8 +395,7 @@
                         (svg/text x (+ y 0.05) hex)]]}))
         f-boxes (for [i (range 80)]
                   [:g.f-box
-                   (svg/rect 2.5 (+ 0.25 (* i period))
-                             3 3)])]
+                   (apply svg/rect (f-box-dims i))])]
     (svg* [(- minx 2)
            (- miny 2)
            width

@@ -119,3 +119,7 @@
 (defop bit-shift-right
   [x n]
   (core/bit-shift-right (:long-val x) n))
+
+(defop rename
+  [x]
+  (:long-val x))

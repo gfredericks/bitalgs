@@ -21,8 +21,17 @@
       (derive ::A ::A-sup)
       (derive ::init-A ::A-sup)
 
+      (derive ::B ::B-sup)
+      (derive ::init-B ::B-sup)
+
       (derive ::C ::C-sup)
       (derive ::init-C ::C-sup)
+
+      (derive ::D ::D-sup)
+      (derive ::init-D ::D-sup)
+
+      (derive ::E ::E-sup)
+      (derive ::init-E ::E-sup)
 
       (derive ::f1 ::f)
       (derive ::f2 ::f)
@@ -192,7 +201,12 @@
 
               C' ^{::t t, :type ::C}
               (bit-rotate-left B 30)]
-          (recur [A' A C' C D] (inc t)))))))
+          (recur [A'
+                  ^{:type ::B, ::t t} (w32/rename A)
+                  C'
+                  ^{:type ::D, ::t t} (w32/rename C)
+                  ^{:type ::E, ::t t} (w32/rename D)]
+                 (inc t)))))))
 
 (defn sha1
   "Returns a sequence of words"
