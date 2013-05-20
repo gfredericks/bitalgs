@@ -38,7 +38,7 @@
     :bit-xor "\u2295"
     :bit-and "\u2227"
     :bit-not "!"
-    :bit-rotate-left (format "&lt;&lt;[%d]" (first numeric-args))))
+    :bit-rotate-left (format "\u27f2%d" (first numeric-args))))
 
 (defn word-node
   [w]
@@ -387,7 +387,7 @@
                           [[:g.op
                             (svg/line x' y' x y)
                             (svg/circle x' y' 0.2)
-                            (svg/text x' (+ y' 0.05) (op-label op-name (filter number? inputs)))]]))
+                            (svg/text x' (+ y' 0.07) (op-label op-name (filter number? inputs)))]]))
 
                       :words
                       [[:g.word
