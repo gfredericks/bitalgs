@@ -18,6 +18,9 @@
       (derive ::init-D ::init)
       (derive ::init-E ::init)
 
+      (derive ::init ::constant)
+      (derive ::K ::constant)
+
       (derive ::A ::A-sup)
       (derive ::init-A ::A-sup)
 

@@ -336,7 +336,7 @@
   [::sha1/init ::sha1/output]
   (let [i (* 0.05 (::sha1/i (meta w1)))]
     (rectilinear start end :vert
-                 (+ y1 0.3 i)
+                 (+ y1 0.5 (- i))
                  (+ 7 i)
                  (+ (dec y2) i)
                  (+ 0.5 x2)))
@@ -348,6 +348,13 @@
   (prn "UNPROCESSED" (map (comp symbol name type) [w1 w2]))
   [])
 
+(defmulti fill-color type :hierarchy #'sha1/type-hierarchy)
+
+(defmethods fill-color [w]
+   ::sha1/constant "pink"
+   ::sha1/input "#AAEEAA"
+   ::sha1/output "#3377EE"
+   :default "#CCCCCC")
 
 (defn prov-data->svg
   [words]
@@ -392,7 +399,9 @@
                       :words
                       [[:g.word
                         [:title (str (name type) ":" t)]
-                        (svg/rect (- x 0.4) (- y 0.1) 0.8 0.2 {:rx 0.05, :ry 0.05})
+                        (svg/rect (- x 0.4) (- y 0.1) 0.8 0.2 {:rx 0.05,
+                                                               :ry 0.05,
+                                                               :fill (fill-color w)})
                         (svg/text x (+ y 0.05) hex)]]}))
         f-boxes (for [i (range 80)]
                   [:g.f-box

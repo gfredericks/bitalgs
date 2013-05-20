@@ -1,7 +1,7 @@
 g.word rect {
   stroke: black;
   stroke-width: 0.04;
-  fill: #AAEEAA;
+  /* fill: #AAEEAA; */
 }
 
 g.op circle {
@@ -39,5 +39,5 @@ g.word-arrow polyline {
 g.f-box rect {
   stroke: black;
   stroke-width: 0.04;
-  fill: #AAAAEE;
+  fill: #EEEEAA;
 }
