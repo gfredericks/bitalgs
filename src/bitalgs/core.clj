@@ -338,7 +338,8 @@
     (rectilinear start end :vert
                  (+ y1 0.3 i)
                  (+ 7 i)
-                 (+ (dec y2) i)))
+                 (+ (dec y2) i)
+                 (+ 0.5 x2)))
 
 )
 
