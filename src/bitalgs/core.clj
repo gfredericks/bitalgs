@@ -102,14 +102,6 @@
   [t]
   [2.5 (+ 1.25 (* t period)) 3 3])
 
-(defn f-box-input-anchors
-  [t i]
-  [(+ 3 i) (+ 1.25 (* t period))])
-
-(defn f-box-output-anchor
-  [t]
-  [4 (+ 4.25 (* t period))])
-
 (defmulti coords (fn [x t] (type x))
   :hierarchy #'sha1/type-hierarchy)
 
