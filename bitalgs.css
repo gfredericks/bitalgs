@@ -41,3 +41,27 @@ g.f-box rect {
   stroke-width: 0.04;
   fill: #EEEEAA;
 }
+
+g.reference rect.border {
+  stroke: black;
+  stroke-width: 0.06;
+  fill: #FFFFFF;
+}
+
+g.reference text.item {
+  font-size: 0.10pt;
+  fill: black;
+  font-family: "Helvetica";
+}
+
+g.input text.okay {
+  font-size: 0.3pt;
+  fill: black;
+  font-family: "Helvetica";
+}
+
+g.input text.then {
+  font-size: 0.2pt;
+  fill: black;
+  font-family: "monospace";
+}

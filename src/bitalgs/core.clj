@@ -31,14 +31,14 @@
       (vals ids))))
 
 (defn op-label
-  [kw numeric-args]
+  [kw args]
   (case kw
     :+ "+"
     :bit-or "\u2228"
     :bit-xor "\u2295"
     :bit-and "\u2227"
     :bit-not "!"
-    :bit-rotate-left (format "\u27f2%d" (first numeric-args))))
+    :bit-rotate-left (str "\u27f2" (first args))))
 
 (defn word-node
   [w]
@@ -348,8 +348,57 @@
    ::sha1/output "#3377EE"
    :default "#CCCCCC")
 
-(defn prov-data->svg
-  [words]
+(defn word
+  [x y title color text]
+  [:g.word
+   [:title title]
+   (svg/rect (- x 0.4) (- y 0.1) 0.8 0.2 {:rx 0.05,
+                                          :ry 0.05,
+                                          :fill color})
+   (svg/text x (+ y 0.05) text)])
+
+(defn op
+  [x y op-name op-inputs]
+  (list
+   (svg/circle x y 0.2)
+   (svg/text x (+ y 0.07) (op-label op-name op-inputs))))
+
+(def reference
+  [:g.reference {:transform "translate(-1.5, -1)"}
+   (svg/rect 0 0 2.6 4.75 {:class "border"})
+   (svg/text 0.1 0.4
+             "SHA1"
+             {:font-size 0.4
+              :fill "black"
+              :font-family "Helvetica"})
+   (for [[title type txt i]
+         [["Input" ::sha1/input "Input (with 0's and length)" 0]
+          ["Constant" ::sha1/constant "Algorithm constant" 1]
+          ["Output" ::sha1/output "Output" 2]]
+         :let [dy (+ 0.75 (* i 0.35))]]
+     [:g {:transform (format "translate(0,%f)" dy)}
+      (word 0.5 0 "Input" (fill-color (with-meta {} {:type type})) "0123abcd")
+      (svg/text 1 0.03 txt {:class "item"})])
+   (for [[op-name op-inputs txt i]
+         [[:+ [] "32-bit addition" 0]
+          [:bit-or [] "Bitwise OR" 1]
+          [:bit-xor [] "Bitwise XOR" 2]
+          [:bit-and [] "Bitwise AND" 3]
+          [:bit-not [] "Bitwise NOT" 4]
+          [:bit-rotate-left ["n"] "Bit-rotate left by n" 5]]
+         :let [dy (+ 1.9 (* i 0.5))]]
+     [:g {:transform (format "translate(0,%f)" dy)}
+      [:g.op (op 0.3 0 op-name op-inputs)]
+      (svg/text 1 0.03 txt {:class "item"})])])
+
+(defn input-note
+  [s]
+  [:g.input
+   (svg/text -1.5 4.25 "Input:" {:class "okay"})
+   (svg/text -0.3 4.25 (pr-str s) {:class "then"})])
+
+(defn sha1-svg
+  [input-string words]
   (let [layout (into {} (for [w words] [(wordid w) (coords w (::sha1/t (meta w)))]))
         op-coords (fn [wordid]
                     (let [[x y] (layout wordid)]
@@ -385,16 +434,10 @@
                         (let [[x' y'] (op-coords id)]
                           [[:g.op
                             (svg/line x' y' x y)
-                            (svg/circle x' y' 0.2)
-                            (svg/text x' (+ y' 0.07) (op-label op-name (filter number? inputs)))]]))
+                            (op x' y' op-name (filter number? inputs))]]))
 
                       :words
-                      [[:g.word
-                        [:title (str (name type) ":" t)]
-                        (svg/rect (- x 0.4) (- y 0.1) 0.8 0.2 {:rx 0.05,
-                                                               :ry 0.05,
-                                                               :fill (fill-color w)})
-                        (svg/text x (+ y 0.05) hex)]]}))
+                      [(word x y (str (name type) ":" t) (fill-color w) hex)]}))
         f-boxes (for [i (range 80)]
                   [:g.f-box
                    (apply svg/rect (f-box-dims i))])]
@@ -406,14 +449,17 @@
           (int (* 1000 (/ height width)))
           (list
            [:style (slurp "bitalgs.css")]
+           reference
+           (input-note input-string)
            (concat f-boxes (:arrows els) (:ops els) (:words els))))))
 
-(let [words (->> (.getBytes "Message")
+(let [input-string "denny"
+      words (->> (.getBytes input-string)
                  (seq)
                  (sha1)
                  (provenance-data))]
   (spit "sha1.svg"
-        (html (prov-data->svg words))))
+        (html (sha1-svg input-string words))))
 
 (comment
 
