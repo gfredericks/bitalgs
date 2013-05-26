@@ -343,10 +343,11 @@
 (defmulti fill-color type :hierarchy #'sha1/type-hierarchy)
 
 (defmethods fill-color [w]
-   ::sha1/constant "pink"
-   ::sha1/input "#AAEEAA"
-   ::sha1/output "#3377EE"
-   :default "#CCCCCC")
+  ;; Lucas recommended making the colors brighter.
+  ::sha1/constant "#ffdfe5" #_"#ffc0cb"
+  ::sha1/input "#d4f6d4" #_"#AAEEAA"
+  ::sha1/output "#99bbf6" #_"#3377EE"
+  :default "#e5e5e5" #_"#CCCCCC")
 
 (defn word
   [x y title color text]
