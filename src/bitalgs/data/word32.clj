@@ -7,7 +7,8 @@
                             bit-shift-right
                             +])
   (:require [bitalgs.data :refer [IByteString]]
-            [clojure.core :as core]))
+            [clojure.core :as core]
+            [clojure.walk :as wk]))
 
 (defrecord Word32 [long-val]
   IByteString
@@ -24,6 +25,7 @@
                     (assert (integer? l))
                     (func l))))
 
+;; Is this really a good idea?
 (def ^:dynamic *metadata* {})
 
 (defmacro with-data
@@ -34,51 +36,16 @@
   (and (instance? Word32 x)
        (instance? Long (:long-val x))))
 
-(defn op-meta
-  [x form-meta op-name args]
-  (with-meta x
-    (merge *metadata*
-           {:bitalgs/provenance {:op-name op-name
-                                 :inputs args}
-            :bitalgs/id (gensym "word32")}
-           form-meta)))
-
-(defn qualify
-  [sym]
-  (symbol (str *ns*) (str sym)))
-
-(defn defop-helper
-  [fn-name arg-forms op-name form-meta]
-  `(let [args# [~@arg-forms]]
-     (op-meta (->Word32 (apply ~fn-name args#))
-              ~form-meta
-              ~(-> op-name name keyword)
-              args#)))
-
 (defmacro defop
-  [op-name & bodies]
-  (let [fn-name (symbol (str op-name "*"))]
-    `(do
-       (defn ~fn-name
-         ~@bodies)
-       (defmacro ~op-name
-         [& args#]
-         (defop-helper
-           '~(qualify fn-name)
-           args#
-           '~op-name
-           (meta ~'&form))))))
-
-(defn word32-with-provenance
-  [long-val op-name inputs]
-  (with-meta
-    (if (word32? long-val)
-      long-val
-      (->Word32 long-val))
-    (merge {:bitalgs/provenance {:op-name op-name
-                                 :inputs inputs}
-            :bitalgs/id (gensym "word32")}
-           *metadata*)))
+  [op-name args expr]
+  `(defn ~op-name
+     [& args#]
+     (let [~args args#]
+       (with-meta (->Word32 ~expr)
+         (merge {:bitalgs/provenance {:op-name ~(keyword op-name)
+                                      :inputs (vec args#)}
+                 :bitalgs/id (gensym "word32")}
+                *metadata*)))))
 
 (defn word32-with-id
   [long-val & {:as attrs}]
@@ -120,6 +87,59 @@
   [x n]
   (core/bit-shift-right (:long-val x) n))
 
+(defop bit-rotate-left
+  [x n]
+  ;; a little haxy?
+  (:long-val
+   (+
+    (bit-shift-left x n)
+    (bit-shift-right x (- 32 n)))))
+
+
 (defop rename
   [x]
   (:long-val x))
+
+(defmacro bitly
+  "Anaphoric macro: creates local bindings around body for all the
+   bitwise functions so expressions can be more readable.
+
+   Does a bunch with metadata. Any metadata besides :line or :column
+   gets added to the result of the form at runtime. Any namespaced
+   keyword whose value is true gets set to the :type."
+  [expr]
+  (let [metadata (fn [form]
+                   (let [m (-> form meta (dissoc :line :column))]
+                     (if-let [type (->> m
+                                        keys
+                                        (filter keyword?)
+                                        (filter namespace)
+                                        (filter #(true? (get m %)))
+                                        (first))]
+                       (-> m (dissoc type) (assoc :type type))
+                       m)))
+        ;; this should be postwalk but it loses metadata
+        expr (wk/prewalk
+              (fn [form]
+                (if (seq? form)
+                  (let [m (metadata form)]
+                    (if (empty? m)
+                      form
+                      ;; the second vary-meta here avoids the
+                      ;; stack overflow caused by using prewalk;
+                      ;; see above.
+                      `(vary-meta ~(vary-meta form
+                                              select-keys
+                                              [:line :column])
+                                  merge ~m)))
+                  form))
+              expr)]
+    `(let [~'+ +
+           ~'and bit-and
+           ~'or bit-or
+           ~'not bit-not
+           ~'xor bit-xor
+           ~'<< bit-shift-left
+           ~'>> bit-shift-right
+           ~'<<< bit-rotate-left]
+       ~expr)))

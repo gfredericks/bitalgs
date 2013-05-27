@@ -1,7 +1,7 @@
 (ns bitalgs.sha1
   (:require [bitalgs.data.word32
              :as w32
-             :refer [word32?]]))
+             :refer [word32? bitly]]))
 
 (def type-hierarchy
   (-> (make-hierarchy)
@@ -17,6 +17,12 @@
       (derive ::init-C ::init)
       (derive ::init-D ::init)
       (derive ::init-E ::init)
+
+      (derive ::output-A ::output)
+      (derive ::output-B ::output)
+      (derive ::output-C ::output)
+      (derive ::output-D ::output)
+      (derive ::output-E ::output)
 
       (derive ::init ::constant)
       (derive ::K ::constant)
@@ -71,7 +77,7 @@
 
 (defn assoc-meta
   [x & kvs]
-  (with-meta x (apply assoc (meta x) kvs)))
+  (apply vary-meta x assoc kvs))
 
 (defn prepare-message
   [bytes]
@@ -117,15 +123,6 @@
   (and (= word-nums (count x))
        (every? word32? x)))
 
-(w32/defop bit-rotate-left
-  [x n]
-  {:pre [(word32? x)]}
-  ;; a little haxy?
-  (:long-val
-   (w32/+
-    (w32/bit-shift-left x n)
-    (w32/bit-shift-right x (- 32 n)))))
-
 (defn expand-chunk
   [chunk]
   {:pre [(word32s? 16 chunk)]
@@ -134,40 +131,34 @@
     (if (= 80 t)
       chunk
       (let [new-word
-            (bit-rotate-left
-             ^{:type ::expansion', ::t t}
-             (w32/bit-xor
-              (chunk (- t 3))
-              (chunk (- t 8))
-              (chunk (- t 14))
-              (chunk (- t 16)))
-             1)
-            new-word' (assoc-meta new-word
-                                  :type ::expansion
-                                  ::t t)]
-        (recur (conj chunk new-word') (inc t))))))
+            (bitly
+             ^::expansion ^{::t t}
+             (<<<
+              ^::expansion' ^{::t t}
+              (xor (chunk (- t 3))
+                   (chunk (- t 8))
+                   (chunk (- t 14))
+                   (chunk (- t 16)))
+              1))]
+        (recur (conj chunk new-word) (inc t))))))
 
 (defn sha1-f
   [t B C D]
-  (cond (<= 0 t 19)
-        ^{:type ::f1}
-        (w32/bit-or
-         ^{:type ::f1a}
-         (w32/bit-and B C)
-         ^{:type ::f1b}
-         (w32/bit-and ^{:type ::f1c} (w32/bit-not B) D))
+  (w32/with-data {::t t}
+    (bitly
+     (cond (<= 0 t 19)
+           ^::f1 (or ^::f1a (and B C)
+                     ^::f1b (and ^::f1c (not B) D))
 
-        (or (<= 20 t 39)
+           (clojure.core/or
+            (<= 20 t 39)
             (<= 60 t 79))
-        ^{:type ::f2}
-        (w32/bit-xor B C D)
+           ^::f2 (xor B C D)
 
-        (<= 40 59)
-        ^{:type ::f3}
-        (w32/bit-or
-         ^{:type ::f3a} (w32/bit-and B C)
-         ^{:type ::f3b} (w32/bit-and B D)
-         ^{:type ::f3c} (w32/bit-and C D))))
+           (<= 40 59)
+           ^::f3 (or ^::f3a (and B C)
+                     ^::f3b (and B D)
+                     ^::f3c (and C D))))))
 
 (defn sha1-K
   [t]
@@ -181,35 +172,31 @@
   (let [chunk' (expand-chunk chunk)
         [H0 H1 H2 H3 H4] state]
     (loop [[A B C D E] state, t 0]
-      (if (= 80 t)
-        ;; Putting the output metadata here rather than in the sha1
-        ;; function makes the implicit assumption that we're not
-        ;; going to be doing graphs for more than one chunk.
-        (w32/with-data {:type ::output, ::t t}
-          [^{:output :A, ::i 0} (w32/+ A H0)
-           ^{:output :B, ::i 1} (w32/+ B H1)
-           ^{:output :C, ::i 2} (w32/+ C H2)
-           ^{:output :D, ::i 3} (w32/+ D H3)
-           ^{:output :E, ::i 4} (w32/+ E H4)])
-        (let [A'
-              (w32/with-data {::t t}
-                ^{:type ::A}
-                (w32/+
-                 ^{:type ::A'}
-                 (bit-rotate-left A 5)
-                 (sha1-f t B C D)
-                 E
-                 (chunk' t)
-                 (sha1-K t)))
+      (bitly
+       (if (= 80 t)
+         ;; Putting the output metadata here rather than in the sha1
+         ;; function makes the implicit assumption that we're not
+         ;; going to be doing graphs for more than one chunk.
+         [^::output-A, ^{::t t, ::i 0} (+ A H0)
+          ^::output-B, ^{::t t, ::i 1} (+ B H1)
+          ^::output-C, ^{::t t, ::i 2} (+ C H2)
+          ^::output-D, ^{::t t, ::i 3} (+ D H3)
+          ^::output-E, ^{::t t, ::i 4} (+ E H4)]
+         (let [A'
+               ^::A ^{::t t}
+               (+ ^::A' ^{::t t} (<<< A 5)
+                  (sha1-f t B C D)
+                  E
+                  (chunk' t)
+                  (sha1-K t))
 
-              C' ^{::t t, :type ::C}
-              (bit-rotate-left B 30)]
-          (recur [A'
-                  ^{:type ::B, ::t t} (w32/rename A)
-                  C'
-                  ^{:type ::D, ::t t} (w32/rename C)
-                  ^{:type ::E, ::t t} (w32/rename D)]
-                 (inc t)))))))
+               C' ^::C ^{::t t} (<<< B 30)]
+           (recur [A'
+                   ^::B ^{::t t} (w32/rename A)
+                   C'
+                   ^::D ^{::t t} (w32/rename C)
+                   ^::E ^{::t t} (w32/rename D)]
+                  (inc t))))))))
 
 (defn sha1
   "Returns a sequence of words"
