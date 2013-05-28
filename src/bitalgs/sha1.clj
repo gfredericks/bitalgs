@@ -1,4 +1,5 @@
 (ns bitalgs.sha1
+  "http://www.itl.nist.gov/fipspubs/fip180-1.htm"
   (:require [bitalgs.data :as data]
             [bitalgs.data.word32
              :as w32

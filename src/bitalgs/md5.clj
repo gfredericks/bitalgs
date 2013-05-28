@@ -1,4 +1,5 @@
 (ns bitalgs.md5
+  "http://www.kleinschmidt.com/edi/md5.htm"
   (:require [bitalgs.data :as data]
             [bitalgs.data.word32
              :as w32
@@ -93,6 +94,9 @@
   (bitly
    (xor Y (or X (not Z)))))
 
+;; Note that the spec speaks of T indexed by 1..64 while we're using a
+;; vector here and so assuming 0..63. This corresponds to the (dec i)
+;; used in the func function below.
 (def T
   (mapv
    (fn [i]
@@ -123,13 +127,21 @@
     [ABCD  8  6 57]  [DABC 15 10 58]  [CDAB  6 15 59]  [BCDA 13 21 60]
     [ABCD  4  6 61]  [DABC 11 10 62]  [CDAB  2 15 63]  [BCDA  9 21 64]])
 
+;; Here we're deliberately reinterpreting the spec, which speaks of
+;; updating the variables in place according to the ABCD pattern given
+;; above. Instead because the letters just rotate in the same way on
+;; each iteration, I changed the style to be more similar to SHA1,
+;; which should be equivalent (at least when the 64 ABCD patterns
+;; above are assumed. In the general case they are not).
 (defn func
   [X [A B C D] t]
   (let [f ([F G H I] (quot t 16))
-        [_ k s i] (round-specs t)]
+        [_ k s i] (round-specs t)
+        ;; decrement i so it's in the 0..63 range instead of 1..64
+        i (dec i)]
     (bitly
      [D
-      (+ B (<<< (+ A (f B C D) (X k) (T (dec i))) s))
+      (+ B (<<< (+ A (f B C D) (X k) (T i)) s))
       B
       C])))
 
