@@ -1,7 +1,7 @@
 (ns bitalgs.core
   (:require [bitalgs.data :refer [bytes->hex]]
             [bitalgs.graphviz :as gv]
-            [bitalgs.sha1 :refer [sha1] :as sha1]
+            [bitalgs.sha1 :as sha1]
             [bitalgs.data.word32 :as w32]
             [bitalgs.util :refer [defmethods]]
             [clojure.string :as s]
@@ -457,7 +457,7 @@
 (let [input-string "denny"
       words (->> (.getBytes input-string)
                  (seq)
-                 (sha1)
+                 (sha1/sha1-words)
                  (provenance-data))]
   (spit "sha1.svg"
         (html (sha1-svg input-string words))))

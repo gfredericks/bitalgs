@@ -8,7 +8,7 @@
        (= out-hex (->> (.getBytes in-ascii)
                        (seq)
                        (md5)
-                       (map data/bytes->hex)
+                       (map (partial format "%02x"))
                        (apply str)))
        ""
        "d41d8cd98f00b204e9800998ecf8427e"

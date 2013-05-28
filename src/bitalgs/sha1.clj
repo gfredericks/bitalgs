@@ -1,5 +1,6 @@
 (ns bitalgs.sha1
-  (:require [bitalgs.data.word32
+  (:require [bitalgs.data :as data]
+            [bitalgs.data.word32
              :as w32
              :refer [word32? bitly]]))
 
@@ -198,7 +199,7 @@
                    ^::E ^{::t t} (w32/rename D)]
                   (inc t))))))))
 
-(defn sha1
+(defn sha1-words
   "Returns a sequence of words"
   [bytes]
   (->> bytes
@@ -206,3 +207,10 @@
        ;; chunks
        (partition 16)
        (reduce sha1-chunk sha1-init-state)))
+
+;; TODO: are these Bytes on the way in and Longs on the way out?
+;; this is confusing.
+(defn sha1
+  "Returns a sequence of bytes"
+  [bytes]
+  (mapcat data/bytes (sha1-words bytes)))

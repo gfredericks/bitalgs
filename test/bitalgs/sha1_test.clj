@@ -31,7 +31,7 @@
        (= out-hex (->> (.getBytes in-ascii)
                        (seq)
                        (sha1)
-                       (map data/bytes->hex)
+                       (map (partial format "%02x"))
                        (apply str)))
        "Message" "68f4145fee7dde76afceb910165924ad14cf0d00"
        "" "da39a3ee5e6b4b0d3255bfef95601890afd80709"

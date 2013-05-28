@@ -1,5 +1,6 @@
 (ns bitalgs.md5
-  (:require [bitalgs.data.word32
+  (:require [bitalgs.data :as data]
+            [bitalgs.data.word32
              :as w32
              :refer [word32? bitly]]))
 
@@ -127,8 +128,8 @@
   (let [f ([F G H I] (quot t 16))
         [_ k s i] (round-specs t)]
     (bitly
-     [(+ B (<<< (+ A (f B C D) (X k) (T (dec i))) s))
-      A
+     [D
+      (+ B (<<< (+ A (f B C D) (X k) (T (dec i))) s))
       B
       C])))
 
@@ -148,7 +149,7 @@
       ^::output-C, ^{::t 64, ::i 2} (+ C CC)
       ^::output-D, ^{::t 64, ::i 3} (+ D DD)])))
 
-(defn md5
+(defn md5-words
   "Returns a sequence of words"
   [bytes]
   (->> bytes
@@ -156,3 +157,8 @@
        ;; chunks
        (partition 16)
        (reduce state-> init-state)))
+
+(defn md5
+  "Returns a sequence of bytes"
+  [bytes]
+  (mapcat (comp reverse data/bytes) (md5-words bytes)))
