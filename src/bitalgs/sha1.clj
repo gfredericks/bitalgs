@@ -50,12 +50,10 @@
 
 (defn word64->bytes
   [x]
-  (loop [ret (), x x, i 0]
-    (if (= 8 i)
-      ret
-      (recur (conj ret (bit-and x 255))
-             (bit-shift-right x 8)
-             (inc i)))))
+  (for [i (range 56 -1 -8)]
+    (-> x
+        (bit-shift-right i)
+        (bit-and 255))))
 
 (defn input-word
   [[a b c d :as bytes]]
@@ -129,20 +127,22 @@
   [chunk]
   {:pre [(word32s? 16 chunk)]
    :post [(word32s? 80 %)]}
-  (loop [chunk (vec chunk), t 16]
-    (if (= 80 t)
-      chunk
-      (let [new-word
-            (bitly
-             ^::expansion ^{::t t}
-             (<<<
-              ^::expansion' ^{::t t}
-              (xor (chunk (- t 3))
-                   (chunk (- t 8))
-                   (chunk (- t 14))
-                   (chunk (- t 16)))
-              1))]
-        (recur (conj chunk new-word) (inc t))))))
+  (->> (vec chunk)
+       (iterate
+        (fn [words]
+          (let [t (count words)]
+            (conj words
+                  (bitly
+                   ^::expansion ^{::t t}
+                   (<<<
+                    ^::expansion' ^{::t t}
+                    (xor (words (- t 3))
+                         (words (- t 8))
+                         (words (- t 14))
+                         (words (- t 16)))
+                    1))))))
+       (drop-while #(< (count %) 80))
+       (first)))
 
 (defn sha1-f
   [t B C D]
@@ -166,39 +166,41 @@
   [t]
   (K-constants (quot t 20)))
 
+(defn func
+  [[A B C D E] [input-word t]]
+  (bitly
+   (let [A'
+         ^::A ^{::t t}
+         (+ ^::A' ^{::t t} (<<< A 5)
+            (sha1-f t B C D)
+            E
+            input-word
+            (sha1-K t))
+
+         C' ^::C ^{::t t} (<<< B 30)]
+     [A'
+      ^::B ^{::t t} (w32/rename A)
+      C'
+      ^::D ^{::t t} (w32/rename C)
+      ^::E ^{::t t} (w32/rename D)])))
+
 (defn sha1-chunk
   [state chunk]
   {:pre [(word32s? 5 state)
          (word32s? 16 chunk)]
    :post [(word32s? 5 %)]}
   (let [chunk' (expand-chunk chunk)
-        [H0 H1 H2 H3 H4] state]
-    (loop [[A B C D E] state, t 0]
-      (bitly
-       (if (= 80 t)
-         ;; Putting the output metadata here rather than in the sha1
-         ;; function makes the implicit assumption that we're not
-         ;; going to be doing graphs for more than one chunk.
-         [^::output-A, ^{::t t, ::i 0} (+ A H0)
-          ^::output-B, ^{::t t, ::i 1} (+ B H1)
-          ^::output-C, ^{::t t, ::i 2} (+ C H2)
-          ^::output-D, ^{::t t, ::i 3} (+ D H3)
-          ^::output-E, ^{::t t, ::i 4} (+ E H4)]
-         (let [A'
-               ^::A ^{::t t}
-               (+ ^::A' ^{::t t} (<<< A 5)
-                  (sha1-f t B C D)
-                  E
-                  (chunk' t)
-                  (sha1-K t))
-
-               C' ^::C ^{::t t} (<<< B 30)]
-           (recur [A'
-                   ^::B ^{::t t} (w32/rename A)
-                   C'
-                   ^::D ^{::t t} (w32/rename C)
-                   ^::E ^{::t t} (w32/rename D)]
-                  (inc t))))))))
+        [H0 H1 H2 H3 H4] state
+        [A B C D E] (reduce func state (map vector chunk' (range)))]
+    (bitly
+     ;; Putting the output metadata here rather than in the sha1
+     ;; function makes the implicit assumption that we're not
+     ;; going to be doing graphs for more than one chunk.
+     [^::output-A, ^{::t 80, ::i 0} (+ A H0)
+      ^::output-B, ^{::t 80, ::i 1} (+ B H1)
+      ^::output-C, ^{::t 80, ::i 2} (+ C H2)
+      ^::output-D, ^{::t 80, ::i 3} (+ D H3)
+      ^::output-E, ^{::t 80, ::i 4} (+ E H4)])))
 
 (defn sha1-words
   "Returns a sequence of words"
