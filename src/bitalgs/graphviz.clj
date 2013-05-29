@@ -33,3 +33,63 @@
   (with-out-str
     (print "digraph G ")
     (print-graph g)))
+
+;;
+;; Some old code for the SHA1 thing
+;;
+
+(comment
+  (defn word-node
+    [w]
+    (let [{id :bitalgs/id,
+           cat :type
+           {:keys [inputs op-name]} :bitalgs/provenance}
+          (meta w)
+
+          hexed (s/upper-case (bytes->hex w))
+
+          numeric-inputs (filter number? inputs)
+
+          label (if op-name
+                  (format "{ %s | %s }"
+                          (op-label op-name numeric-inputs)
+                          hexed)
+                  hexed)]
+      {:id id
+       :props {:label label
+               :style "filled"
+               :fillcolor (case cat
+                            :constant "#EE8888"
+                            :input "#8888EE"
+                            :output "#88EE88"
+                            "white")}}))
+
+  (defn prov-data->graph*
+    [words]
+    (apply merge-with into
+           (for [w words
+                 :let [{id :bitalgs/id
+                        {:keys [inputs op-name]} :bitalgs/provenance}
+                       (meta w)
+                       node (word-node w)]]
+             {:nodes [node]
+              :edges (for [input inputs
+                           :when (w32/word32? input)]
+                       {:from (wordid input)
+                        :to id})})))
+
+  (defn prov-data->graph
+    [words]
+    (let [grouped
+          (group-by (comp :type meta) words)]
+      (merge (prov-data->graph* words)
+             {:node-props {:shape "record"
+                           :style "rounded"}
+              :graphs (for [category [:constant :input :output]
+                            :let [props ({:constant {}
+                                          :input {:rank "source"}
+                                          :output {:rank "sink"}}
+                                         category)]]
+                        {:props props
+                         :nodes (map word-node
+                                     (grouped category))})}))))

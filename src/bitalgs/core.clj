@@ -3,6 +3,7 @@
             [bitalgs.graphviz :as gv]
             [bitalgs.sha1 :as sha1]
             [bitalgs.data.word32 :as w32]
+            [bitalgs.svg :as bsvg]
             [bitalgs.util :refer [defmethods]]
             [clojure.string :as s]
             #_[clojure.core.logic :as l]
@@ -30,71 +31,6 @@
                     (into xs))))
       (vals ids))))
 
-(defn op-label
-  [kw args]
-  (case kw
-    :+ "+"
-    :bit-or "\u2228"
-    :bit-xor "\u2295"
-    :bit-and "\u2227"
-    :bit-not "!"
-    :bit-rotate-left (str "\u27f2" (first args))))
-
-(defn word-node
-  [w]
-  (let [{id :bitalgs/id,
-         cat :type
-         {:keys [inputs op-name]} :bitalgs/provenance}
-        (meta w)
-
-        hexed (s/upper-case (bytes->hex w))
-
-        numeric-inputs (filter number? inputs)
-
-        label (if op-name
-                (format "{ %s | %s }"
-                        (op-label op-name numeric-inputs)
-                        hexed)
-                hexed)]
-    {:id id
-     :props {:label label
-             :style "filled"
-             :fillcolor (case cat
-                          :constant "#EE8888"
-                          :input "#8888EE"
-                          :output "#88EE88"
-                          "white")}}))
-
-(defn prov-data->graph*
-  [words]
-  (apply merge-with into
-         (for [w words
-               :let [{id :bitalgs/id
-                      {:keys [inputs op-name]} :bitalgs/provenance}
-                     (meta w)
-                     node (word-node w)]]
-           {:nodes [node]
-            :edges (for [input inputs
-                         :when (w32/word32? input)]
-                     {:from (wordid input)
-                      :to id})})))
-
-(defn prov-data->graph
-  [words]
-  (let [grouped
-        (group-by (comp :type meta) words)]
-    (merge (prov-data->graph* words)
-           {:node-props {:shape "record"
-                         :style "rounded"}
-            :graphs (for [category [:constant :input :output]
-                          :let [props ({:constant {}
-                                        :input {:rank "source"}
-                                        :output {:rank "sink"}}
-                                       category)]]
-                      {:props props
-                       :nodes (map word-node
-                                   (grouped category))})})))
-
 (def period 6)
 (def line-sep 0.1)
 
@@ -102,10 +38,17 @@
   [t]
   [2.5 (+ 1.25 (* t period)) 3 3])
 
-(defmulti coords (fn [x t] (type x))
+(defmulti coords type
   :hierarchy #'sha1/type-hierarchy)
 
-(defmethods coords [word t]
+(defmacro coords-fns
+  [& dispatch+bodies]
+  `(defmethods coords [~'word]
+     ~@(mapcat (fn [[dispatch body]]
+                 [dispatch `(let [~'t (::sha1/t (meta ~'word))] ~body)])
+               (partition 2 dispatch+bodies))))
+
+(coords-fns
 
   ::sha1/f
   [4 (+ 4 (* period t))]
@@ -349,20 +292,6 @@
   ::sha1/output "#99bbf6" #_"#3377EE"
   :default "#e5e5e5" #_"#CCCCCC")
 
-(defn word
-  [x y title color text]
-  [:g.word
-   [:title title]
-   (svg/rect (- x 0.4) (- y 0.1) 0.8 0.2 {:rx 0.05,
-                                          :ry 0.05,
-                                          :fill color})
-   (svg/text x (+ y 0.05) text)])
-
-(defn op
-  [x y op-name op-inputs]
-  (list
-   (svg/circle x y 0.2)
-   (svg/text x (+ y 0.07) (op-label op-name op-inputs))))
 
 (def reference
   [:g.reference {:transform "translate(-1.5, -1)"}
@@ -372,13 +301,13 @@
              {:font-size 0.4
               :fill "black"
               :font-family "Helvetica"})
-   (for [[title type txt i]
-         [["Input" ::sha1/input "Input (with 0's and length)" 0]
-          ["Constant" ::sha1/constant "Algorithm constant" 1]
-          ["Output" ::sha1/output "Output" 2]]
+   (for [[type txt i]
+         [[::sha1/input "Input (with 0's and length)" 0]
+          [::sha1/constant "Algorithm constant" 1]
+          [::sha1/output "Output" 2]]
          :let [dy (+ 0.75 (* i 0.35))]]
      [:g {:transform (format "translate(0,%f)" dy)}
-      (word 0.5 0 "Input" (fill-color (with-meta {} {:type type})) "0123abcd")
+      (bsvg/word 0.5 0 (fill-color (with-meta {} {:type type})) "0123abcd")
       (svg/text 1 0.03 txt {:class "item"})])
    (for [[op-name op-inputs txt i]
          [[:+ [] "32-bit addition" 0]
@@ -389,7 +318,7 @@
           [:bit-rotate-left ["n"] "Bit-rotate left by n" 5]]
          :let [dy (+ 1.9 (* i 0.5))]]
      [:g {:transform (format "translate(0,%f)" dy)}
-      [:g.op (op 0.3 0 op-name op-inputs)]
+      [:g.op (bsvg/op 0.3 0 op-name op-inputs)]
       (svg/text 1 0.03 txt {:class "item"})])])
 
 (defn input-note
@@ -400,59 +329,16 @@
 
 (defn sha1-svg
   [input-string words]
-  (let [layout (into {} (for [w words] [(wordid w) (coords w (::sha1/t (meta w)))]))
-        op-coords (fn [wordid]
-                    (let [[x y] (layout wordid)]
-                      [x (- y 0.4)]))
-        xs (->> layout vals (map first))
-        ys (->> layout vals (map second))
-        [minx maxx] (apply (juxt min max) xs)
-        [miny maxy] (apply (juxt min max) ys)
-        width (+ 4 (- maxx minx))
-        height (+ 4 (- maxy miny))
-        els (apply merge-with into
-                   (for [w words
-                         :let [{id :bitalgs/id
-                                {:keys [inputs op-name]} :bitalgs/provenance
-                                type :type
-                                t ::sha1/t}
-                               (meta w)
-
-                               hex (s/upper-case (bytes->hex w))
-                               [x y] (layout id)]]
-                     {:arrows
-                      (for [input inputs
-                            :when (w32/word32? input)
-                            :let [rename? (= :rename op-name)
-                                  p1 (layout (wordid input))
-                                  p2 (if rename? [x y] (op-coords id))
-                                  joints (arrow-joints input w p1 p2)]]
-                        [:g.word-arrow
-                         (svg/polyline (concat [p1] joints [p2]))])
-
-                      :ops
-                      (if (and inputs (not= op-name :rename))
-                        (let [[x' y'] (op-coords id)]
-                          [[:g.op
-                            (svg/line x' y' x y)
-                            (op x' y' op-name (filter number? inputs))]]))
-
-                      :words
-                      [(word x y (str (name type) ":" t) (fill-color w) hex)]}))
-        f-boxes (for [i (range 80)]
-                  [:g.f-box
-                   (apply svg/rect (f-box-dims i))])]
-    (svg* [(- minx 2)
-           (- miny 2)
-           width
-           height]
-          1000
-          (int (* 1000 (/ height width)))
-          (list
-           [:style (slurp "bitalgs.css")]
-           reference
-           (input-note input-string)
-           (concat f-boxes (:arrows els) (:ops els) (:words els))))))
+  (bsvg/svg
+   coords
+   arrow-joints
+   fill-color
+   (list (input-note input-string)
+         (for [i (range 80)]
+           [:g.f-box
+            (apply svg/rect (f-box-dims i))])
+         reference)
+   words))
 
 (let [input-string "denny"
       words (->> (.getBytes input-string)
