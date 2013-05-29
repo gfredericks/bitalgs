@@ -6,8 +6,6 @@
             [bitalgs.svg :as bsvg]
             [bitalgs.util :refer [defmethods]]
             [clojure.string :as s]
-            #_[clojure.core.logic :as l]
-            #_[clojure.core.logic.fd :as fd]
             [com.gfredericks.svg-wrangler :refer [svg*] :as svg]
             [hiccup.core :refer [html]]))
 
@@ -347,57 +345,3 @@
                  (provenance-data))]
   (spit "sha1.svg"
         (html (sha1-svg input-string words))))
-
-(comment
-
-  (->> (.getBytes "Message")
-       (seq)
-       (sha1)
-       (provenance-data)
-       (prov-data->graph)
-       (gv/dot)
-       (spit "/home/gary/public/sha1.dot"))
-
-  (time
-   (let [vs (repeatedly 20 l/lvar)]
-     (l/run 1 [q]
-            (l/== q vs)
-            (l/everyg (fn [v] (fd/in v (fd/interval 1 2)))
-                      vs))))
-
-  (l/run 1 [q]
-         (l/fresh [x1 x2 x3 x4 x5 x6 x7 x8 x9
-                   x10 x11 x12 x13 x14 x15
-                   x16 x17 x18 x19 x20]
-                  (l/== q [x1 x2 x3 x4 x5 x6 x7 x8 x9
-                           x10 x11 x12 x13 x14 x15
-                           x16 x17 x18 x19 x20])
-                  (fd/in x1 x2 x3 x4 x5 x6 x7 x8 x9
-                         x10 x11 x12 x13 x14 x15
-                         x16 x17 x18 x19 x20
-                         (fd/interval 1 2))))
-
-  )
-
-(comment
-  (defn prov-data->layout
-    [words]
-    (time
-     (let [vars (into {} (for [w words] [(wordid w) (l/lvar)]))]
-       (l/run 1 [q]
-              (l/== q (vals vars))
-              (l/everyg (fn [[w inputs v]]
-                          (l/fresh [x y]
-                                   (fd/in x y (fd/interval 1 10000))
-                                   (l/== v [x y])
-                                   #_(l/everyg
-                                      (fn [input-word]
-                                        (let [v (vars (wordid input-word))]
-                                          (l/fresh [x' y']
-                                                   (l/== v [x' y'])
-                                                   (fd/> y y'))))
-                                      inputs)))
-                        (for [w words]
-                          [w (filter w32/word32?
-                                     (-> w meta :bitalgs/provenance :inputs))
-                           (vars (wordid w))])))))))
