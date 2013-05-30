@@ -55,15 +55,6 @@
         (bit-shift-right i)
         (bit-and 255))))
 
-(defn input-word
-  [[a b c d :as bytes]]
-  {:pre [(= 4 (count bytes))]}
-  (w32/word32-with-id
-   (+ (* a 16777216)
-      (* b 65536)
-      (* c 256)
-      d)))
-
 (defn pad-message
   [bytes]
   {:post [(zero? (rem (count %) 64))]}
@@ -84,20 +75,19 @@
   (->> bytes
        (pad-message)
        (partition 4)
-       (map input-word)
        (map-indexed (fn [i w]
-                      (assoc-meta w
-                                  ::t i
-                                  :type ::input)))))
+                      (w32/bytes->word32 w
+                                         ::t i
+                                         :type ::input)))))
 
 (defn constant
-  [hex]
-  (w32/word32-with-id (Long/parseLong hex 16)))
+  [hex & meta-args]
+  (apply w32/word32 (Long/parseLong hex 16) meta-args))
 
 (def sha1-init-state
   (mapv
    (fn [i name s]
-     (assoc-meta (constant s) :type name, ::i i))
+     (constant s :type name, ::i i))
    (range)
    [::init-A ::init-B ::init-C ::init-D ::init-E]
    ["67452301"

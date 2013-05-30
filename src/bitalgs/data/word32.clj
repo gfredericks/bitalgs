@@ -1,11 +1,6 @@
 (ns bitalgs.data.word32
-  (:refer-clojure :exclude [bit-xor
-                            bit-or
-                            bit-and
-                            bit-not
-                            bit-shift-left
-                            bit-shift-right
-                            +])
+  (:refer-clojure :exclude [bit-xor bit-or bit-and bit-not
+                            bit-shift-left bit-shift-right +])
   (:require [bitalgs.data :refer [IByteString]]
             [clojure.core :as core]
             [clojure.walk :as wk]))
@@ -32,6 +27,25 @@
   [m & body]
   `(binding [*metadata* (merge *metadata* ~m)] ~@body))
 
+(defn word32
+  [long-val & {:as more-meta}]
+  (with-meta (->Word32 long-val)
+    (merge *metadata*
+           {:bitalgs/id (gensym "word32")}
+           more-meta)))
+
+(defn bytes->word32
+  "Given four bytes with higher-order bytes first, returns a new
+   Word32."
+  [[a b c d :as bytes] & meta-keyvals]
+  {:pre [(= 4 (count bytes))]}
+  (apply word32
+         (core/+ (* a 16777216)
+                 (* b 65536)
+                 (* c 256)
+                 d)
+         meta-keyvals))
+
 (defn word32? [x]
   (and (instance? Word32 x)
        (instance? Long (:long-val x))))
@@ -41,18 +55,10 @@
   `(defn ~op-name
      [& args#]
      (let [~args args#]
-       (with-meta (->Word32 ~expr)
-         (merge {:bitalgs/provenance {:op-name ~(keyword op-name)
-                                      :inputs (vec args#)}
-                 :bitalgs/id (gensym "word32")}
-                *metadata*)))))
-
-(defn word32-with-id
-  [long-val & {:as attrs}]
-  (with-meta (->Word32 long-val)
-    (merge {:bitalgs/id (gensym "word32")}
-           *metadata*
-           attrs)))
+       (word32 ~expr
+               :bitalgs/provenance
+               {:op-name ~(keyword op-name)
+                :inputs (vec args#)}))))
 
 (defn mask
   [x]

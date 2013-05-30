@@ -4,6 +4,12 @@
             [bitalgs.util :refer [defmethods]]
             [com.gfredericks.svg-wrangler :as svg]))
 
+;;
+;; Have to decide how to handle the little-endianness. Probably just
+;; do the thing that makes the hex string come out the right way and
+;; make a note about little-endianness.
+;;
+
 (def wordid (comp :bitalgs/id meta))
 
 (def period 6)
