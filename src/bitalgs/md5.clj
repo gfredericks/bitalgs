@@ -10,14 +10,11 @@
 
 (defn word64->bytes
   [x]
-  ;; reverse gives us little-endian
-  (reverse
-   (loop [ret (), x x, i 0]
-     (if (= 8 i)
-       ret
-       (recur (conj ret (bit-and x 255))
-              (bit-shift-right x 8)
-              (inc i))))))
+  ;; little-endian
+  (for [i (range 0 64 8)]
+    (-> x
+        (bit-shift-right i)
+        (bit-and 255))))
 
 (defn pad-message
   [bytes]
@@ -29,10 +26,6 @@
                             (- 56 to-64))
         bytes'' (concat bytes' (repeat spacer-byte-count 0))]
     (concat bytes'' (word64->bytes (* 8 (count bytes))))))
-
-(defn assoc-meta
-  [x & kvs]
-  (with-meta x (apply assoc (meta x) kvs)))
 
 (defn prepare-message
   [bytes]

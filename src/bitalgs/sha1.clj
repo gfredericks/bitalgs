@@ -50,6 +50,7 @@
 
 (defn word64->bytes
   [x]
+  ;; big-endian
   (for [i (range 56 -1 -8)]
     (-> x
         (bit-shift-right i)
@@ -65,10 +66,6 @@
                             (- 56 to-64))
         bytes'' (concat bytes' (repeat spacer-byte-count 0))]
     (concat bytes'' (word64->bytes (* 8 (count bytes))))))
-
-(defn assoc-meta
-  [x & kvs]
-  (apply vary-meta x assoc kvs))
 
 (defn prepare-message
   [bytes]
@@ -90,21 +87,14 @@
      (constant s :type name, ::i i))
    (range)
    [::init-A ::init-B ::init-C ::init-D ::init-E]
-   ["67452301"
-    "EFCDAB89"
-    "98BADCFE"
-    "10325476"
-    "C3D2E1F0"]))
+   ["67452301" "EFCDAB89" "98BADCFE" "10325476" "C3D2E1F0"]))
 
 (def K-constants
   (mapv
    (fn [i s]
-     (assoc-meta (constant s) :type ::K, ::i i))
+     (constant s :type ::K, ::i i))
    (range)
-   ["5A827999"
-    "6ED9EBA1"
-    "8F1BBCDC"
-    "CA62C1D6"]))
+   ["5A827999" "6ED9EBA1" "8F1BBCDC" "CA62C1D6"]))
 
 (defn byte? [x] (<= 0 x 255))
 
