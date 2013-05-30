@@ -5,6 +5,9 @@
              :as w32
              :refer [word32? bitly]]))
 
+(def type-hierarchy
+  (-> (make-hierarchy)))
+
 (defn word64->bytes
   [x]
   ;; reverse gives us little-endian
