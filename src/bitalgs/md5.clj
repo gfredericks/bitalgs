@@ -6,7 +6,23 @@
              :refer [word32? bitly]]))
 
 (def type-hierarchy
-  (-> (make-hierarchy)))
+  (-> (make-hierarchy)
+
+      (derive ::F ::FGHI)
+      (derive ::G ::FGHI)
+      (derive ::H ::FGHI)
+      (derive ::I ::FGHI)
+
+      (derive ::output-A ::output)
+      (derive ::output-B ::output)
+      (derive ::output-C ::output)
+      (derive ::output-D ::output)
+
+      (derive ::init-A ::init)
+      (derive ::init-B ::init)
+      (derive ::init-C ::init)
+      (derive ::init-D ::init)
+      ))
 
 (defn word64->bytes
   [x]
@@ -64,22 +80,30 @@
 (defn F
   [X Y Z]
   (bitly
-   (or (and X Y) (and (not X) Z))))
+   ^::F
+   (or
+    ^::Fa (and X Y)
+    ^::Fb (and ^::Fc (not X) Z))))
 
 (defn G
   [X Y Z]
   (bitly
-   (or (and X Z) (and Y (not Z)))))
+   ^::G
+   (or
+    ^::Ga (and X Z)
+    ^::Gb (and Y ^::Gc (not Z)))))
 
 (defn H
   [X Y Z]
   (bitly
-   (xor X Y Z)))
+   ^::H (xor X Y Z)))
 
 (defn I
   [X Y Z]
   (bitly
-   (xor Y (or X (not Z)))))
+   ^::I
+   (xor Y
+        ^::Ia (or X ^::Ib (not Z)))))
 
 ;; Note that the spec speaks of T indexed by 1..64 while we're using a
 ;; vector here and so assuming 0..63. This corresponds to the (dec i)
@@ -87,9 +111,11 @@
 (def T
   (mapv
    (fn [i]
-     (w32/->Word32
+     (w32/word32
       (long (* (Math/abs (Math/sin i))
-               4294967296))))
+               4294967296))
+      :type ::T
+      ::t i))
    (range 1 65)))
 
 (def round-specs
@@ -126,11 +152,13 @@
         [_ k s i] (round-specs t)
         ;; decrement i so it's in the 0..63 range instead of 1..64
         i (dec i)]
-    (bitly
-     [D
-      (+ B (<<< (+ A (f B C D) (X k) (T i)) s))
-      B
-      C])))
+    (w32/with-data {::t t}
+      (bitly
+       [^::A (w32/rename D)
+        ^::B (+ B ^::Ba (<<< ^::Bb (+ A (f B C D) (X k) (T i))
+                             s))
+        ^::C (w32/rename B)
+        ^::D (w32/rename C)]))))
 
 (defn state->
   [state X]
@@ -149,8 +177,9 @@
       ^::output-D, ^{::t 64, ::i 3} (+ D DD)])))
 
 (defn md5-words
-  "Returns a sequence of words"
+  "Returns a sequence of four words"
   [bytes]
+  {:post [(= 4 (count %))]}
   (->> bytes
        (prepare-message)
        ;; chunks
@@ -160,4 +189,5 @@
 (defn md5
   "Returns a sequence of bytes"
   [bytes]
+  ;; reverse because little endian
   (mapcat (comp reverse data/bytes) (md5-words bytes)))

@@ -26,46 +26,51 @@
   [& dispatch+bodies]
   `(defmethods coords [~'word]
      ~@(mapcat (fn [[dispatch body]]
-                 [dispatch `(let [~'t (::md5/t (meta ~'word))] ~body)])
+                 [dispatch `(let [~'t (::md5/t (meta ~'word))
+                                  ~'tp (if ~'t (* period ~'t))]
+                              ~body)])
                (partition 2 dispatch+bodies))))
 
 (coords-fns
 
-  ::md5/f
-  [4 (+ 4 (* period t))]
+  ::md5/FGHI
+  [4 (+ 3 tp)]
 
-  ::md5/f1a
-  [4 (+ 3 (* period t))]
+  ::md5/Fa
+  [5 (+ 3 tp)]
 
-  ::md5/f1b
-  [5 (+ 3 (* period t))]
+  ::md5/Fb
+  [4 (+ 3 tp)]
 
-  ::md5/f1c
-  [3 (+ 2 (* period t))]
+  ::md5/Fc
+  [3 (+ 2 tp)]
 
-  ::md5/f3a
-  [3 (+ 3 (* period t))]
+  ::md5/Ga
+  [5 (+ 3 tp)]
 
-  ::md5/f3b
-  [4 (+ 3 (* period t))]
+  ::md5/Gb
+  [4 (+ 3 tp)]
 
-  ::md5/f3c
-  [5 (+ 3 (* period t))]
+  ::md5/Gc
+  [3 (+ 2 tp)]
 
-  ::md5/input'
-  [0 (+ 5 (* period t))]
+  ::md5/Ia
+  [5 (+ 3 tp)]
 
-  ::md5/expansion'
-  [0 (+ 4 (* period t))]
+  ::md5/Ib
+  [4 (+ 3 tp)]
 
   ::md5/A
   [2 (* period (inc t))]
 
-  ::md5/A'
-  [2 (- (* period (inc t)) 2)]
-
   ::md5/B
   [3 (* period (inc t))]
+
+  ::md5/Ba
+  [3 (- (* period (inc t)) 1)]
+
+  ::md5/Bb
+  [3 (- (* period (inc t)) 2)]
 
   ::md5/C
   [4 (* period (inc t))]
@@ -73,17 +78,17 @@
   ::md5/D
   [5 (* period (inc t))]
 
-  ::md5/E
-  [6 (* period (inc t))]
+  ::md5/T
+  [7 tp]
 
-  ::md5/K
-  [8 (- (* period 20 (::md5/i (meta word))) 0)]
+  ::md5/input
+  [0 tp]
 
   ::md5/init
   [(+ 2 (::md5/i (meta word))) 0]
 
   ::md5/output
-  [(+ 2 (::md5/i (meta word))) (+ 2 (* period 80))])
+  [(+ 2 (::md5/i (meta word))) (+ 2 (* period 64))])
 
 (defmulti arrow-joints
   "Where the arrows points w1->w2"
@@ -315,7 +320,7 @@
    arrow-joints
    fill-color
    (list (input-note input-string)
-         (for [i (range 80)]
+         (for [i (range 64)]
            [:g.f-box
             (apply svg/rect (f-box-dims i))])
          reference)
