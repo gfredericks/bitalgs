@@ -12,7 +12,7 @@
 
 (def wordid (comp :bitalgs/id meta))
 
-(def period 6)
+(def period 7)
 (def line-sep 0.1)
 
 (defn f-box-dims
@@ -34,31 +34,31 @@
 (coords-fns
 
   ::md5/FGHI
-  [4 (+ 3 tp)]
+  [4 (+ 4 tp)]
 
   ::md5/Fa
-  [5 (+ 3 tp)]
+  [4 (+ 2 tp)]
 
   ::md5/Fb
-  [4 (+ 3 tp)]
+  [5 (+ 3 tp)]
 
   ::md5/Fc
   [3 (+ 2 tp)]
 
   ::md5/Ga
-  [5 (+ 3 tp)]
+  [3 (+ 3 tp)]
 
   ::md5/Gb
   [4 (+ 3 tp)]
 
   ::md5/Gc
-  [3 (+ 2 tp)]
+  [5 (+ 2 tp)]
 
   ::md5/Ia
-  [5 (+ 3 tp)]
+  [3 (+ 3 tp)]
 
   ::md5/Ib
-  [4 (+ 3 tp)]
+  [5 (+ 2 tp)]
 
   ::md5/A
   [2 (* period (inc t))]
@@ -79,10 +79,10 @@
   [5 (* period (inc t))]
 
   ::md5/T
-  [7 tp]
+  [7 (- tp 3)]
 
   ::md5/input
-  [0 tp]
+  [0 (+ tp 4)]
 
   ::md5/init
   [(+ 2 (::md5/i (meta word))) 0]
@@ -115,33 +115,13 @@
                  more))
     [start (case orient :horiz [x2 y1] :vert [x1 y2]) end]))
 
-(defn renaming-line
-  [start end y1 i]
-  (let [sep (* i line-sep)]
-    (rectilinear start end :vert
-                 (+ y1 0.6 sep)
-                 (+ 6.5 (- sep))
-                 (+ y1 period -0.75 (- sep)))))
-
 (defmethods arrow-joints [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
 
-
-  [::md5/chunks ::md5/expansion']
-  (let [x' (- x1 1/2 (/ (rem (::md5/t (meta w1)) 16) 20))
-        input-pos (as-> w2 <>
-                        (meta <>)
-                        (get-in <> [:bitalgs/provenance :inputs])
-                        (remove number? <>)
-                        (map wordid <>)
-                        (.indexOf <> (wordid w1)))
-        y' (- y2 0.3 (* 0.1 input-pos))
-        x'' (+ x2 -0.15 (* 0.1 input-pos))]
-    (rectilinear start end :horiz x' y' x''))
-
-
-  [::md5/input' ::md5/A]
-  (rectilinear start end :vert)
-
+  [::md5/input ::md5/Bb]
+  (let [t (::md5/t (meta w1))]
+    (rectilinear start end
+                 :horiz
+                 (+ x1 1.4 (- (* t 0.06)))))
 
   [::md5/f ::md5/A]
   (rectilinear start end :vert (- y2 (* 10 line-sep)))
@@ -159,110 +139,78 @@
   (rectilinear start end :vert (- y2 (* 9 line-sep)) (+ x2 line-sep))
 
 
-  [::md5/A-sup ::md5/f1c]
-  (rectilinear start end :vert
-               (+ y1 2)
-               (inc x1))
-
-
-  [::md5/A-sup ::md5/f1a]
-  (rectilinear start end :vert
-               (+ y1 2)
-               (inc x1))
-
   ;;
   ;; The four lines that are mostly renamings
   ;;
 
-  [::md5/A-sup ::md5/B]
-  (renaming-line start end y1 3)
-  [::md5/B-sup ::md5/C]
-  (renaming-line start end y1 2)
-  [::md5/C-sup ::md5/D]
-  (renaming-line start end y1 1)
-  [::md5/D-sup ::md5/E]
-  (renaming-line start end y1 0)
+  [::md5/B-super ::md5/B]
+  (rectilinear start end :vert
+               (+ y1 1)
+               (+ x1 2.7))
 
+  [::md5/B-super ::md5/C]
+  (rectilinear start end :vert
+               (+ y1 1)
+               (+ x1 2.7)
+               (- y2 bsvg/op-sep))
+
+  [::md5/C-super ::md5/D]
+  (rectilinear start end :vert
+               (+ y1 1 (- line-sep))
+               (+ x1 1.7 line-sep)
+               (- y2 bsvg/op-sep (- line-sep)))
+
+  [::md5/D-super ::md5/A]
+  (rectilinear start end :vert
+               (+ y1 1 (* -2 line-sep))
+               (- x2 line-sep)
+               (- y2 1))
 
   ;;
-  ;; f-stuff
+  ;; The boxes
   ;;
 
-  [::md5/B-sup ::md5/f1a]
-  (rectilinear start end :vert
-               (- y2 1.25)
-               (- x2 0.5))
+  [::md5/Fc ::md5/Fb] (rectilinear start end :vert)
+  [::md5/Fb ::md5/F] (rectilinear start end :vert)
+  [::md5/B-super ::md5/Fa] (rectilinear start end :vert
+                                        (- y2 0.25)
+                                        (- x2 0.5))
 
-  [::md5/C-sup ::md5/f1a]
-  (rectilinear start end :vert)
+  [::md5/Gc ::md5/Gb] (rectilinear start end :vert)
+  [::md5/Ga ::md5/G] (rectilinear start end :vert)
+  [::md5/D-super ::md5/Ga] (rectilinear start end :vert
+                                        (- y2 1.25)
+                                        (+ x2 0.5))
 
-  [::md5/f1c ::md5/f1b]
-  (rectilinear start end :horiz (- x2 0.5))
+  [::md5/B-super ::md5/H] (rectilinear start end :vert)
+  [::md5/C-super ::md5/H] (rectilinear start end :vert)
+  [::md5/D-super ::md5/H] (rectilinear start end :vert)
 
-  [::md5/f1a ::md5/f1]
-  (rectilinear start end :vert)
+  [::md5/Ib ::md5/Ia] (rectilinear start end :vert)
+  [::md5/Ia ::md5/I] (rectilinear start end :vert)
 
-  [::md5/f1b ::md5/f1]
-  (rectilinear start end :vert)
-
-
-  [::md5/f1a ::md5/f]
-  (rectilinear start end :vert
-               (- y2 0.3)
-               (- x2 0.05))
-
-
-  [::md5/f1b ::md5/f]
-  (rectilinear start end :horiz (+ x2 0.05))
-
-  [::md5/B ::md5/f2]
-  (rectilinear start end :vert)
-
-  [::md5/C ::md5/f2]
-  (rectilinear start end :vert)
-
-  [::md5/D ::md5/f2]
-  (rectilinear start end :vert)
-
-  [::md5/f3a ::md5/f3]
-  (rectilinear start end :vert)
-
-  [::md5/f3b ::md5/f3]
-  (rectilinear start end :vert)
-
-  [::md5/f3c ::md5/f3]
-  (rectilinear start end :vert)
-
-  [::md5/B ::md5/f3a]
-  (rectilinear start end :vert)
-  [::md5/B ::md5/f3b]
-  (rectilinear start end :vert
-               (- y2 1/2)
-               (- x2 (/ line-sep 2)))
-  [::md5/C ::md5/f3a]
-  (rectilinear start end :vert
-               (- y2 1)
-               (+ x2 1/2))
-  [::md5/C ::md5/f3c]
-  (rectilinear start end :vert
-               (- y2 1)
-               (- x2 1/2))
-  [::md5/D ::md5/f3b]
-  (rectilinear start end :vert
-               (- y2 1/2)
-               (+ x2 (/ line-sep 2)))
-  [::md5/D ::md5/f3c]
-  (rectilinear start end :vert)
+  ;;
+  ;; Other stuff
+  ;;
 
   [::md5/init ::md5/output]
   (let [i (* 0.05 (::md5/i (meta w1)))]
     (rectilinear start end :vert
                  (+ y1 0.5 (- i))
-                 (+ 7 i)
+                 (+ 6 i)
                  (+ (dec y2) i)
                  (+ 0.5 x2)))
 
-)
+  [::md5/A-super ::md5/Bb]
+  (rectilinear start end :vert
+               (- y2 line-sep))
+
+  [::md5/FGHI ::md5/Bb]
+  (rectilinear start end :vert
+               (- y2 line-sep))
+
+  [::md5/T ::md5/Bb]
+  (rectilinear start end :vert))
 
 (defmethod arrow-joints :default
   [w1 w2 _ _]
@@ -280,7 +228,7 @@
 
 
 (def reference
-  [:g.reference {:transform "translate(-1.5, -1)"}
+  [:g.reference {:transform "translate(-1.5, -1.75)"}
    (svg/rect 0 0 2.6 4.75 {:class "border"})
    (svg/text 0.1 0.4
              "MD5"
@@ -310,8 +258,8 @@
 (defn input-note
   [s]
   [:g.input
-   (svg/text -1.5 4.25 "Input:" {:class "okay"})
-   (svg/text -0.3 4.25 (pr-str s) {:class "then"})])
+   (svg/text -1.5 3.5 "Input:" {:class "okay"})
+   (svg/text -0.3 3.5 (pr-str s) {:class "then"})])
 
 (defn svg
   [input-string words]
@@ -325,3 +273,5 @@
             (apply svg/rect (f-box-dims i))])
          reference)
    words))
+
+(defonce loaded (atom 0)) (swap! loaded inc)

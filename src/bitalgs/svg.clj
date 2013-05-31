@@ -7,6 +7,11 @@
             [com.gfredericks.svg-wrangler :refer [svg*] :as svg]
             [hiccup.core :refer [html]]))
 
+(def op-sep
+  "The distance between the center of a word and the center of its
+   operator."
+  0.4)
+
 (def wordid (comp :bitalgs/id meta))
 
 (defn op-label
@@ -38,7 +43,7 @@
   (let [layout (into {} (for [w words] [(wordid w) (position-fn w)]))
         op-coords (fn [wordid]
                     (let [[x y] (layout wordid)]
-                      [x (- y 0.4)]))
+                      [x (- y op-sep)]))
         xs (->> layout vals (map first))
         ys (->> layout vals (map second))
         [minx maxx] (apply (juxt min max) xs)

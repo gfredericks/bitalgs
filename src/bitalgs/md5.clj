@@ -22,7 +22,18 @@
       (derive ::init-B ::init)
       (derive ::init-C ::init)
       (derive ::init-D ::init)
-      ))
+
+      (derive ::A ::A-super)
+      (derive ::init-A ::A-super)
+      (derive ::B ::B-super)
+      (derive ::init-B ::B-super)
+      (derive ::C ::C-super)
+      (derive ::init-C ::C-super)
+      (derive ::D ::D-super)
+      (derive ::init-D ::D-super)
+
+      (derive ::init ::constant)
+      (derive ::T ::constant)))
 
 (defn word64->bytes
   [x]
