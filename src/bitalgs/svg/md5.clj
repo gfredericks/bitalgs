@@ -37,7 +37,7 @@
   [4 (+ 4 tp)]
 
   ::md5/Fa
-  [4 (+ 2 tp)]
+  [4 (+ 3 tp)]
 
   ::md5/Fb
   [5 (+ 3 tp)]
@@ -176,9 +176,10 @@
   ;; The boxes
   ;;
 
-  [::md5/Fc ::md5/Fb] (vrecti)
+  [::md5/Fc ::md5/Fb] (hrecti (- x2 0.5))
   [::md5/Fb ::md5/F] (vrecti)
-  [::md5/B-super ::md5/Fa] (vrecti (- y2 0.25) (- x2 0.5))
+  [::md5/B-super ::md5/Fa] (vrecti (- y2 1.25)
+                                   (- x2 0.5))
 
   [::md5/Gc ::md5/Gb] (vrecti)
   [::md5/Ga ::md5/G] (vrecti)
