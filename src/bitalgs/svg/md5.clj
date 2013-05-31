@@ -273,5 +273,3 @@
             (apply svg/rect (f-box-dims i))])
          reference)
    words))
-
-(defonce loaded (atom 0)) (swap! loaded inc)
