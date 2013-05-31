@@ -115,28 +115,39 @@
                  more))
     [start (case orient :horiz [x2 y1] :vert [x1 y2]) end]))
 
-(defmethods arrow-joints [w1 w2 [x1 y1 :as start] [x2 y2 :as end]]
+(defmacro defarrow-joints
+  [& dispatch+exprs]
+  `(defmethods arrow-joints [~'w1 ~'w2
+                             [~'x1 ~'y1 :as ~'start]
+                             [~'x2 ~'y2 :as ~'end]]
+     ~@(mapcat
+        (fn [[disp expr]]
+          [disp `(let [~'recti (partial rectilinear ~'start ~'end)
+                       ~'vrecti (partial ~'recti :vert)
+                       ~'hrecti (partial ~'recti :horiz)]
+                   ~expr)])
+        (partition 2 dispatch+exprs))))
+
+(defarrow-joints
 
   [::md5/input ::md5/Bb]
   (let [t (::md5/t (meta w1))]
-    (rectilinear start end
-                 :horiz
-                 (+ x1 1.4 (- (* t 0.06)))))
+    (hrecti (+ x1 1.4 (- (* t 0.06)))))
 
   [::md5/f ::md5/A]
-  (rectilinear start end :vert (- y2 (* 10 line-sep)))
+  (vrecti (- y2 (* 10 line-sep)))
 
 
   [::md5/K ::md5/A]
-  (rectilinear start end :vert (- y2 (* 8 line-sep)) (+ 0.25 x2))
+  (vrecti (- y2 (* 8 line-sep)) (+ 0.25 x2))
 
 
   [::md5/A' ::md5/A]
-  (rectilinear start end :horiz (- x1 0.1))
+  (hrecti (- x1 0.1))
 
 
   [::md5/E-sup ::md5/A]
-  (rectilinear start end :vert (- y2 (* 9 line-sep)) (+ x2 line-sep))
+  (vrecti (- y2 (* 9 line-sep)) (+ x2 line-sep))
 
 
   ;;
@@ -144,50 +155,39 @@
   ;;
 
   [::md5/B-super ::md5/B]
-  (rectilinear start end :vert
-               (+ y1 1)
-               (+ x1 2.7))
+  (vrecti (+ y1 1) (+ x1 2.7))
 
   [::md5/B-super ::md5/C]
-  (rectilinear start end :vert
-               (+ y1 1)
-               (+ x1 2.7)
-               (- y2 bsvg/op-sep))
+  (vrecti (+ y1 1) (+ x1 2.7) (- y2 bsvg/op-sep))
 
   [::md5/C-super ::md5/D]
-  (rectilinear start end :vert
-               (+ y1 1 (- line-sep))
-               (+ x1 1.7 line-sep)
-               (- y2 bsvg/op-sep (- line-sep)))
+  (vrecti
+   (+ y1 1 (- line-sep))
+   (+ x1 1.7 line-sep)
+   (- y2 bsvg/op-sep (- line-sep)))
 
   [::md5/D-super ::md5/A]
-  (rectilinear start end :vert
-               (+ y1 1 (* -2 line-sep))
-               (- x2 line-sep)
-               (- y2 1))
+  (vrecti
+   (+ y1 1 (* -2 line-sep))
+   (- x2 line-sep)
+   (- y2 1))
 
   ;;
   ;; The boxes
   ;;
 
-  [::md5/Fc ::md5/Fb] (rectilinear start end :vert)
-  [::md5/Fb ::md5/F] (rectilinear start end :vert)
-  [::md5/B-super ::md5/Fa] (rectilinear start end :vert
-                                        (- y2 0.25)
-                                        (- x2 0.5))
+  [::md5/Fc ::md5/Fb] (vrecti)
+  [::md5/Fb ::md5/F] (vrecti)
+  [::md5/B-super ::md5/Fa] (vrecti (- y2 0.25) (- x2 0.5))
 
-  [::md5/Gc ::md5/Gb] (rectilinear start end :vert)
-  [::md5/Ga ::md5/G] (rectilinear start end :vert)
-  [::md5/D-super ::md5/Ga] (rectilinear start end :vert
-                                        (- y2 1.25)
-                                        (+ x2 0.5))
+  [::md5/Gc ::md5/Gb] (vrecti)
+  [::md5/Ga ::md5/G] (vrecti)
+  [::md5/D-super ::md5/Ga] (vrecti (- y2 1.25) (+ x2 0.5))
 
-  [::md5/B-super ::md5/H] (rectilinear start end :vert)
-  [::md5/C-super ::md5/H] (rectilinear start end :vert)
-  [::md5/D-super ::md5/H] (rectilinear start end :vert)
+  [::md5/ABCD-super ::md5/H] (vrecti)
 
-  [::md5/Ib ::md5/Ia] (rectilinear start end :vert)
-  [::md5/Ia ::md5/I] (rectilinear start end :vert)
+  [::md5/Ib ::md5/Ia] (vrecti)
+  [::md5/Ia ::md5/I] (vrecti)
 
   ;;
   ;; Other stuff
@@ -195,22 +195,21 @@
 
   [::md5/init ::md5/output]
   (let [i (* 0.05 (::md5/i (meta w1)))]
-    (rectilinear start end :vert
-                 (+ y1 0.5 (- i))
-                 (+ 6 i)
-                 (+ (dec y2) i)
-                 (+ 0.5 x2)))
+    (vrecti (+ y1 0.5 (- i))
+            (+ 6 i)
+            (+ (dec y2) i)
+            (+ 0.5 x2)))
 
   [::md5/A-super ::md5/Bb]
-  (rectilinear start end :vert
-               (- y2 line-sep))
+  (vrecti
+   (- y2 line-sep))
 
   [::md5/FGHI ::md5/Bb]
-  (rectilinear start end :vert
-               (- y2 line-sep))
+  (vrecti
+   (- y2 line-sep))
 
   [::md5/T ::md5/Bb]
-  (rectilinear start end :vert))
+  (vrecti))
 
 (defmethod arrow-joints :default
   [w1 w2 _ _]

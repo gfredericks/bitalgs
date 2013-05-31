@@ -32,6 +32,11 @@
       (derive ::D ::D-super)
       (derive ::init-D ::D-super)
 
+      (derive ::A-super ::ABCD-super)
+      (derive ::B-super ::ABCD-super)
+      (derive ::C-super ::ABCD-super)
+      (derive ::D-super ::ABCD-super)
+
       (derive ::init ::constant)
       (derive ::T ::constant)))
 
