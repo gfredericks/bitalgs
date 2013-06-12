@@ -1,85 +1,99 @@
 (ns bitalgs.svg.sha1.logic
   (:refer-clojure :exclude [==])
-  (:require [clojure.core.logic :refer :all]
+  (:require [bitalgs.sha1 :as sha1]
+            [clojure.core.logic :refer :all]
             [clojure.core.logic.fd :as fd]))
 
 (def wordid (comp :bitalgs/id meta))
 
-(defn mino
-  "w is (min x y)"
-  [x y w]
-  (conde
-   [(== x y) (== x w)]
-   [(fd/< x y) (== x w)]
-   [(fd/> x y) (== y w)]))
-
-(defn maxo
-  "w is (min x y)"
-  [x y w]
-  (conde
-   [(== x y) (== x w)]
-   [(fd/< x y) (== y w)]
-   [(fd/> x y) (== x w)]))
-
-(defn zipgoal
-  [g coll1 coll2]
-  (matche [coll1 coll2]
-          ([[] []])
-          ([[x1 . xs1] [x2 . xs2]]
-             (g x1 x2)
-             (zipgoal g xs1 xs2))))
-(defn xso
-  [xys xs]
-  (zipgoal firsto xys xs))
-
-(defn yso
-  [xys ys]
-  (zipgoal #(fresh [x]
-                   (== [x %2] %1))
-           xys
-           ys))
-
 (defn layout
   [words]
   (let [vs (zipmap (map wordid words)
-                   (repeatedly lvar))]
-    (run 1 [q]
-         (== q (vals vs))
-         (everyg
-          (fn [[w v]]
-            (let [inputs (->> w
-                              meta
-                              :bitalgs/provenance
-                              :inputs
-                              (remove number?))
-                  input-vs (map (comp vs wordid) inputs)]
-              (if (seq inputs)
-                (all
-                 (fd/in x (fd/interval 0 500))))
-              #_(if (seq inputs)
-                (fresh [x y ys y']
-                       (== v [x y])
-                       (fd/in x (fd/interval 0 10))
-                       (fd/in y (fd/interval 0 500))
-                       #_(yso input-vs ys)
-                       #_(fd/+ y' 1 y)
-                       (everyg (fn [input-v]
-                                 (fresh [vx vy]
-                                        (== input-v [vx vy])
-                                        (fd/> y vy)))
-                               input-vs)
-                       #_(membero y' ys))
+                   (repeatedly lvar))
+        w->v (comp vs wordid)]
+    (first
+     (run 1 [q]
+          (== q vs)
+          (everyg
+           (fn [[w v]]
+             (let [inputs (->> w
+                               meta
+                               :bitalgs/provenance
+                               :inputs
+                               (remove number?))
+                   wt (type w)
+                   input-vs (map w->v inputs)
+                   is? (partial isa?
+                                bitalgs.sha1/type-hierarchy
+                                wt)
+                   when-is (fn [t g] (if (is? t) g s#))
+
+                   first-parent-that's
+                   (fn [t]
+                     (->> inputs
+                          (filter #(isa? bitalgs.sha1/type-hierarchy (type %) t))
+                          (first)
+                          (w->v)))
+
+                   with-parent
+                   (fn [t f]
+                     (let [v (first-parent-that's t)]
+                       (fresh [x y]
+                              (== v [x y])
+                              (f x y))))]
+               (all
                 (fresh [x y]
                        (== v [x y])
-                       (== y 0)))))
-          (map (juxt identity (comp vs wordid)) words)))))
+                       (fd/in x (fd/interval 1 10))
+                       (fd/in y (fd/interval 1 1000))
+
+                       (when-is ::sha1/init
+                                (== y 1))
+
+                       (when-is ::sha1/ABCDE
+                                (all
+                                 (== x
+                                     ({::sha1/A 3
+                                       ::sha1/B 4
+                                       ::sha1/C 5
+                                       ::sha1/D 6
+                                       ::sha1/E 7} wt))
+                                 (with-parent ::sha1/initABCDE
+                                   (fn [x' y']
+                                     (fd/+ 6 y' y)))))
+
+                       (when-is ::sha1/A
+                                (with-parent ::sha1/input'
+                                  (fn [x' y']
+                                    (all
+                                     (fd/+ 2 x' x)
+                                     (fd/+ 1 y' y)))))
+
+                       (when-is ::output
+                                (with-parent ::ABCDE
+                                  (fn [x' y']
+                                    (fd/+ 2 y' y))))))))
+           (map (juxt identity (comp vs wordid)) words))))))
 
 (comment
 (+ 1 2)
 
-(def f (future (first (layout bitalgs.core/words))))
+(def f (layout bitalgs.core/words))
 
-(future-done? f)
+(count (frequencies (vals f)))
 
-(count @f)
-  )
+(->> f
+     (vals)
+     (frequencies)
+     (seq)
+     (shuffle)
+     (take 10))
+
+(->> bitalgs.core/words
+     (filter #(= [1 1] (f (wordid %))))
+     (map type)
+     (frequencies))
+{:bitalgs.sha1/f2 40, :bitalgs.sha1/f1c 20, :bitalgs.sha1/A' 80, :bitalgs.sha1/output-A 1, :bitalgs.sha1/f3b 20, :bitalgs.sha1/f3a 20, :bitalgs.sha1/K 4, :bitalgs.sha1/init-E 1, :bitalgs.sha1/expansion' 64, :bitalgs.sha1/output-C 1, :bitalgs.sha1/f3c 20, :bitalgs.sha1/output-B 1, :bitalgs.sha1/init-B 1, :bitalgs.sha1/init-A 1, :bitalgs.sha1/output-D 1, :bitalgs.sha1/init-D 1, :bitalgs.sha1/init-C 1, :bitalgs.sha1/output-E 1, :bitalgs.sha1/f1 20, :bitalgs.sha1/f1b 20, :bitalgs.sha1/f1a 20, :bitalgs.sha1/f3 20}
+
+((frequencies (vals f)) [1 1])
+)

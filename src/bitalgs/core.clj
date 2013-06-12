@@ -33,14 +33,21 @@
                    (seq)
                    (sha1/sha1-words)
                    (provenance-data))]
+    (def words words))
+
+    (let [input-string "denny"
+        words (->> (.getBytes input-string)
+                   (seq)
+                   (sha1/sha1-words)
+                   (provenance-data))]
     (spit "sha1.svg"
-          (html (svg-sha1/svg input-string words)))))
+          (html (svg-sha1/svg input-string words))))
 
 
-(let [input-string "denny"
-      words (->> (.getBytes input-string)
-                 (seq)
-                 (md5/md5-words)
-                 (provenance-data))]
-  (spit "md5.svg"
-        (html (svg-md5/svg input-string words))))
+  (let [input-string "denny"
+        words (->> (.getBytes input-string)
+                   (seq)
+                   (md5/md5-words)
+                   (provenance-data))]
+    (spit "md5.svg"
+          (html (svg-md5/svg input-string words)))))
