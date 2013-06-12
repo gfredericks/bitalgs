@@ -5,48 +5,51 @@
              :as w32
              :refer [word32? bitly]]))
 
+(defn derives
+  [h parent & children]
+  (reduce
+   #(derive %1 %2 parent)
+   h
+   children))
+
 (def type-hierarchy
   (-> (make-hierarchy)
-      (derive ::input ::chunks)
-      (derive ::expansion ::chunks)
-      (derive ::expansion' ::chunks)
-      (derive ::input ::input')
-      (derive ::expansion ::input')
+      (derives ::input'
+               ::input
+               ::expansion)
+      (derives ::chunks
+               ::input'
+               ::expansion')
 
-      ;; The ::init parent class
-      (derive ::init-A ::init)
-      (derive ::init-B ::init)
-      (derive ::init-C ::init)
-      (derive ::init-D ::init)
-      (derive ::init-E ::init)
+      (derives ::init
+               ::init-A
+               ::init-B
+               ::init-C
+               ::init-D
+               ::init-E)
 
-      (derive ::output-A ::output)
-      (derive ::output-B ::output)
-      (derive ::output-C ::output)
-      (derive ::output-D ::output)
-      (derive ::output-E ::output)
+      (derives ::output
+               ::output-A
+               ::output-B
+               ::output-C
+               ::output-D
+               ::output-E)
 
-      (derive ::init ::constant)
-      (derive ::K ::constant)
+      (derives ::constant
+               ::init
+               ::K)
 
-      (derive ::A ::A-sup)
-      (derive ::init-A ::A-sup)
+      (derives ::A-sup ::A ::init-A)
+      (derives ::B-sup ::B ::init-B)
+      (derives ::C-sup ::C ::init-C)
+      (derives ::D-sup ::D ::init-D)
+      (derives ::E-sup ::E ::init-E)
 
-      (derive ::B ::B-sup)
-      (derive ::init-B ::B-sup)
+      (derives ::ABCDE ::A ::B ::C ::D ::E)
 
-      (derive ::C ::C-sup)
-      (derive ::init-C ::C-sup)
+      (derives ::initABCDE ::init ::ABCDE)
 
-      (derive ::D ::D-sup)
-      (derive ::init-D ::D-sup)
-
-      (derive ::E ::E-sup)
-      (derive ::init-E ::E-sup)
-
-      (derive ::f1 ::f)
-      (derive ::f2 ::f)
-      (derive ::f3 ::f)))
+      (derives ::f ::f1 ::f2 ::f3)))
 
 (defn word64->bytes
   [x]
