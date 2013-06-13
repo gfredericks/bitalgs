@@ -35,7 +35,7 @@
                    (provenance-data))]
     (def words words))
 
-    (let [input-string "denny"
+  (let [input-string "denny"
         words (->> (.getBytes input-string)
                    (seq)
                    (sha1/sha1-words)

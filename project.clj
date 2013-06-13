@@ -6,4 +6,4 @@
   :dependencies [[com.gfredericks/svg-wrangler "0.1.4"]
                  [hiccup "1.0.3"]
                  [org.clojure/clojure "1.5.1"]
-                 #_[org.clojure/core.logic "0.8.4-SNAPSHOT"]])
+                 [com.gfredericks/core.logic "0.8.4-LOGIC-137"]])

@@ -1,10 +1,9 @@
 (ns bitalgs.svg.sha1
   (:require [bitalgs.sha1 :as sha1]
             [bitalgs.svg :as bsvg]
-            [bitalgs.util :refer [defmethods]]
+            [bitalgs.svg.sha1.logic :refer [layout]]
+            [bitalgs.util :refer [defmethods wordid]]
             [com.gfredericks.svg-wrangler :as svg]))
-
-(def wordid (comp :bitalgs/id meta))
 
 (def period 6)
 (def line-sep 0.1)
@@ -12,72 +11,6 @@
 (defn f-box-dims
   [t]
   [2.5 (+ 1.25 (* t period)) 3 3])
-
-(defmulti coords type
-  :hierarchy #'sha1/type-hierarchy)
-
-(defmacro coords-fns
-  [& dispatch+bodies]
-  `(defmethods coords [~'word]
-     ~@(mapcat (fn [[dispatch body]]
-                 [dispatch `(let [~'t (::sha1/t (meta ~'word))] ~body)])
-               (partition 2 dispatch+bodies))))
-
-(coords-fns
-
-  ::sha1/f
-  [4 (+ 4 (* period t))]
-
-  ::sha1/f1a
-  [4 (+ 3 (* period t))]
-
-  ::sha1/f1b
-  [5 (+ 3 (* period t))]
-
-  ::sha1/f1c
-  [3 (+ 2 (* period t))]
-
-  ::sha1/f3a
-  [3 (+ 3 (* period t))]
-
-  ::sha1/f3b
-  [4 (+ 3 (* period t))]
-
-  ::sha1/f3c
-  [5 (+ 3 (* period t))]
-
-  ::sha1/input'
-  [0 (+ 5 (* period t))]
-
-  ::sha1/expansion'
-  [0 (+ 4 (* period t))]
-
-  ::sha1/A
-  [2 (* period (inc t))]
-
-  ::sha1/A'
-  [2 (- (* period (inc t)) 2)]
-
-  ::sha1/B
-  [3 (* period (inc t))]
-
-  ::sha1/C
-  [4 (* period (inc t))]
-
-  ::sha1/D
-  [5 (* period (inc t))]
-
-  ::sha1/E
-  [6 (* period (inc t))]
-
-  ::sha1/K
-  [8 (- (* period 20 (::sha1/i (meta word))) 0)]
-
-  ::sha1/init
-  [(+ 2 (::sha1/i (meta word))) 0]
-
-  ::sha1/output
-  [(+ 2 (::sha1/i (meta word))) (+ 2 (* period 80))])
 
 (defmulti arrow-joints
   "Where the arrows points w1->w2"
@@ -255,7 +188,7 @@
 
 (defmethod arrow-joints :default
   [w1 w2 _ _]
-  (prn "UNPROCESSED" (map (comp symbol name type) [w1 w2]))
+  #_(prn "UNPROCESSED" (map (comp symbol name type) [w1 w2]))
   [])
 
 (defmulti fill-color type :hierarchy #'sha1/type-hierarchy)
@@ -305,7 +238,7 @@
 (defn svg
   [input-string words]
   (bsvg/svg
-   coords
+   (comp (layout words) wordid)
    arrow-joints
    fill-color
    (list (input-note input-string)

@@ -48,6 +48,7 @@
       (derives ::ABCDE ::A ::B ::C ::D ::E)
 
       (derives ::initABCDE ::init ::ABCDE)
+      (derives ::initABCDEoutput ::init ::ABCDE ::output)
 
       (derives ::f ::f1 ::f2 ::f3)))
 
