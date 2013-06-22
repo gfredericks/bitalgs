@@ -18,8 +18,7 @@
          remaining words]
     (if-let [[x & xs] (seq remaining)]
       (recur (assoc ids (data/id x) x)
-             (->> (data/inputs x)
-                  (filter w32/word32?)
+             (->> (data/traceable-inputs x)
                   (remove (comp ids data/id))
                   (into xs)))
       (vals ids))))

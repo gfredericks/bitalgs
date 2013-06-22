@@ -45,6 +45,13 @@
       (derives ::D-sup ::D ::init-D)
       (derives ::E-sup ::E ::init-E)
 
+      (derives ::A-all ::A ::init-A ::output-A)
+      (derives ::B-all ::B ::init-B ::output-B)
+      (derives ::C-all ::C ::init-C ::output-C)
+      (derives ::D-all ::D ::init-D ::output-D)
+      (derives ::E-all ::E ::init-E ::output-E)
+
+
       (derives ::ABCDE ::A ::B ::C ::D ::E)
 
       (derives ::initABCDE ::init ::ABCDE)

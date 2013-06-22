@@ -2,8 +2,10 @@
   (:require [bitalgs.data :as data]
             [bitalgs.sha1 :as sha1]
             [bitalgs.svg :as bsvg]
-            [bitalgs.svg.sha1.logic :refer [layout]]
+            [bitalgs.svg.layout :as layout]
             [bitalgs.util :refer [defmethods]]
+            [clojure.core.logic :as l]
+            [clojure.core.logic.fd :as fd]
             [com.gfredericks.svg-wrangler :as svg]))
 
 (def period 6)
@@ -234,10 +236,44 @@
    (svg/text -1.5 4.25 "Input:" {:class "okay"})
    (svg/text -0.3 4.25 (pr-str s) {:class "then"})])
 
+(defn make-layout
+  [words]
+  (layout/solve-layout words sha1/type-hierarchy [0 0 10 1000]
+                       (layout/set-Y ::sha1/init  0)
+                       (layout/set-X ::sha1/A-all 2)
+                       (layout/set-X ::sha1/B-all 3)
+                       (layout/set-X ::sha1/C-all 4)
+                       (layout/set-X ::sha1/D-all 5)
+                       (layout/set-X ::sha1/E-all 6)
+                       (layout/set-X ::sha1/K     8)
+
+                       (layout/set-Y-diff  ::sha1/initABCDE  ::sha1/ABCDE      6)
+                       (layout/set-Y-diff  ::sha1/ABCDE      ::sha1/output     2)
+                       (layout/set-Y-diff  ::sha1/expansion' ::sha1/expansion  1)
+                       (layout/set-XY-diff ::sha1/input'     ::sha1/A          2 1)
+                       (layout/set-XY-diff ::sha1/A'         ::sha1/A          0 2)
+                       (layout/set-XY-diff ::sha1/f          ::sha1/A         -2 2)
+                       (layout/set-XY-diff ::sha1/f1a        ::sha1/f1         0 1)
+                       (layout/set-XY-diff ::sha1/f1b        ::sha1/f1        -1 1)
+                       (layout/set-XY-diff ::sha1/f1c        ::sha1/f1b        2 1)
+                       (layout/set-XY-diff ::sha1/f3a        ::sha1/f3         1 1)
+                       (layout/set-XY-diff ::sha1/f3b        ::sha1/f3         0 1)
+                       (layout/set-XY-diff ::sha1/f3c        ::sha1/f3        -1 1)
+                       ;; Manual goal that sets some weird constraints on the
+                       ;; K positions such that they go exactly where I want :P
+                       {:types [::sha1/K ::sha1/A]
+                        :goal (fn [input-var output-var]
+                                (l/matche [input-var output-var]
+                                          ([[x1 y1] [x2 y2]]
+                                             (l/fresh [d]
+                                                      (fd/+ d y1 y2)
+                                                      (fd/> d 5)
+                                                      (fd/< d 121)))))}))
+
 (defn svg
   [input-string words]
   (bsvg/svg
-   (comp (layout words) data/id)
+   (comp (make-layout words) data/id)
    arrow-joints
    fill-color
    (list (input-note input-string)
