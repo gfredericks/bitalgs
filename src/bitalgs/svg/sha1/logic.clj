@@ -1,26 +1,26 @@
 (ns bitalgs.svg.sha1.logic
   (:refer-clojure :exclude [==])
-  (:require [bitalgs.sha1 :as sha1]
-            [bitalgs.util :refer [wordid word-inputs]]
+  (:require [bitalgs.data :as data]
+            [bitalgs.sha1 :as sha1]
             [clojure.core.logic :refer :all]
             [clojure.core.logic.fd :as fd]))
 
 (defn prep-vars
   [words]
-  (let [vs (zipmap (map wordid words)
+  (let [vs (zipmap (map data/id words)
                    (repeatedly lvar))
 
         things (for [w words]
                  {:word w
                   :type (type w)
-                  :var (vs (wordid w))})
+                  :var (vs (data/id w))})
 
         pairs
         (for [w words
-              input (word-inputs w)]
-          {:from      (vs (wordid input))
+              input (data/traceable-inputs w)]
+          {:from      (vs (data/id input))
            :from-type (type input)
-           :to        (vs (wordid w))
+           :to        (vs (data/id w))
            :to-type   (type w)})]
     {:vars vs
      :words things

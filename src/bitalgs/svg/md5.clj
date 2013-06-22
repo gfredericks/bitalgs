@@ -10,8 +10,6 @@
 ;; make a note about little-endianness.
 ;;
 
-(def wordid (comp :bitalgs/id meta))
-
 (def period 7)
 (def line-sep 0.1)
 

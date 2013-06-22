@@ -1,5 +1,6 @@
 (ns bitalgs.graphviz
-  (:require [clojure.string :as s]))
+  (:require [bitalgs.data :as data]
+            [clojure.string :as s]))
 
 (defn prop-str
   [m]
@@ -41,10 +42,10 @@
 (comment
   (defn word-node
     [w]
-    (let [{id :bitalgs/id,
-           cat :type
-           {:keys [inputs op-name]} :bitalgs/provenance}
-          (meta w)
+    (let [id (data/id w)
+          inputs (data/inputs w)
+          op-name (data/operation w)
+          cat (type w)
 
           hexed (s/upper-case (bytes->hex w))
 
@@ -67,16 +68,11 @@
   (defn prov-data->graph*
     [words]
     (apply merge-with into
-           (for [w words
-                 :let [{id :bitalgs/id
-                        {:keys [inputs op-name]} :bitalgs/provenance}
-                       (meta w)
-                       node (word-node w)]]
-             {:nodes [node]
-              :edges (for [input inputs
-                           :when (w32/word32? input)]
-                       {:from (wordid input)
-                        :to id})})))
+           (for [w words]
+             {:nodes [(word-node w)]
+              :edges (for [input (data/traceable-inputs w)]
+                       {:from (data/id input)
+                        :to (data/id w)})})))
 
   (defn prov-data->graph
     [words]

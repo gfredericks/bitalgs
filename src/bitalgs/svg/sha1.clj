@@ -1,8 +1,9 @@
 (ns bitalgs.svg.sha1
-  (:require [bitalgs.sha1 :as sha1]
+  (:require [bitalgs.data :as data]
+            [bitalgs.sha1 :as sha1]
             [bitalgs.svg :as bsvg]
             [bitalgs.svg.sha1.logic :refer [layout]]
-            [bitalgs.util :refer [defmethods wordid]]
+            [bitalgs.util :refer [defmethods]]
             [com.gfredericks.svg-wrangler :as svg]))
 
 (def period 6)
@@ -51,11 +52,9 @@
   [::sha1/chunks ::sha1/expansion']
   (let [x' (- x1 1/2 (/ (rem (::sha1/t (meta w1)) 16) 20))
         input-pos (as-> w2 <>
-                        (meta <>)
-                        (get-in <> [:bitalgs/provenance :inputs])
-                        (remove number? <>)
-                        (map wordid <>)
-                        (.indexOf <> (wordid w1)))
+                        (data/traceable-inputs <>)
+                        (map data/id <>)
+                        (.indexOf <> (data/id w1)))
         y' (- y2 0.3 (* 0.1 input-pos))
         x'' (+ x2 -0.15 (* 0.1 input-pos))]
     (rectilinear start end :horiz x' y' x''))
@@ -238,7 +237,7 @@
 (defn svg
   [input-string words]
   (bsvg/svg
-   (comp (layout words) wordid)
+   (comp (layout words) data/id)
    arrow-joints
    fill-color
    (list (input-note input-string)

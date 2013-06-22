@@ -16,3 +16,22 @@
          (for [b (bytes bytestring)
                :let [s (Integer/toHexString b)]]
            (if (= 2 (count s)) s (str \0 s)))))
+
+(defprotocol ITraceableValue
+  "A protocol for values that have trace information available, presumably
+   on their metadata (since the trace information shouldn't affect equality)."
+  (id [x] "Returns the ID for this traceable value.")
+  (inputs [x] "Returns a sequence of inputs to this traceable value.")
+  (operation [x] "Returns a keyword giving the operation that produced
+                  this traceable value."))
+
+(defn traceable-value? [x] (satisfies? ITraceableValue x))
+
+(defn traceable-inputs
+  [x]
+  (->> x
+       (inputs)
+       (filter #(satisfies? ITraceableValue %))))
+
+;; TODO: Do we also want a protocol for the thing we're using :type
+;; metadata for?

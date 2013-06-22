@@ -1,7 +1,7 @@
 (ns bitalgs.svg
   "The generic code for drawing manually laid-out SVGs of
    algorithms."
-  (:require [bitalgs.data :refer [bytes->hex]]
+  (:require [bitalgs.data :refer [bytes->hex] :as data]
             [bitalgs.data.word32 :as w32]
             [clojure.string :as s]
             [com.gfredericks.svg-wrangler :refer [svg*] :as svg]
@@ -11,8 +11,6 @@
   "The distance between the center of a word and the center of its
    operator."
   0.4)
-
-(def wordid (comp :bitalgs/id meta))
 
 (defn op-label
   [kw args]
@@ -40,7 +38,7 @@
 
 (defn svg
   [position-fn arrow-joints-fn word-color-fn extra-stuff words]
-  (let [layout (into {} (for [w words] [(wordid w) (position-fn w)]))
+  (let [layout (into {} (for [w words] [(data/id w) (position-fn w)]))
         op-coords (fn [wordid]
                     (let [[x y] (layout wordid)]
                       [x (- y op-sep)]))
@@ -52,18 +50,18 @@
         height (+ 4 (- maxy miny))
         els (apply merge-with into
                    (for [w words
-                         :let [{id :bitalgs/id
-                                {:keys [inputs op-name]} :bitalgs/provenance
-                                type :type}
-                               (meta w)
+                         :let [type (type w)
+                               id (data/id w)
+                               inputs (data/inputs w)
+                               op-name (data/operation w)
 
                                hex (s/upper-case (bytes->hex w))
                                [x y] (layout id)]]
                      {:arrows
                       (for [input inputs
-                            :when (w32/word32? input)
+                            :when (data/traceable-value? input)
                             :let [rename? (= :rename op-name)
-                                  p1 (layout (wordid input))
+                                  p1 (layout (data/id input))
                                   p2 (if rename? [x y] (op-coords id))
                                   joints (arrow-joints-fn input w p1 p2)]]
                         [:g.word-arrow

@@ -10,13 +10,3 @@
           `(defmethod ~mname ~dispatch
              ~arglist
              ~body))))
-
-(def wordid (comp :bitalgs/id meta))
-
-(defn word-inputs
-  [word]
-  (->> word
-       meta
-       :bitalgs/provenance
-       :inputs
-       (remove number?)))

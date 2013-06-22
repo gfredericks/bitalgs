@@ -1,5 +1,5 @@
 (ns bitalgs.core
-  (:require [bitalgs.data :refer [bytes->hex]]
+  (:require [bitalgs.data :refer [bytes->hex] :as data]
             [bitalgs.data.word32 :as w32]
             [bitalgs.graphviz :as gv]
             [bitalgs.md5 :as md5]
@@ -17,14 +17,11 @@
   (loop [ids {},
          remaining words]
     (if-let [[x & xs] (seq remaining)]
-      (let [{id :bitalgs/id
-             prov :bitalgs/provenance}
-            (meta x)]
-        (recur (assoc ids id x)
-               (->> (:inputs prov)
-                    (filter w32/word32?)
-                    (remove (comp ids :bitalgs/id meta))
-                    (into xs))))
+      (recur (assoc ids (data/id x) x)
+             (->> (data/inputs x)
+                  (filter w32/word32?)
+                  (remove (comp ids data/id))
+                  (into xs)))
       (vals ids))))
 
 (comment

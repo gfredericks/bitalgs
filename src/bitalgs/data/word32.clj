@@ -1,7 +1,7 @@
 (ns bitalgs.data.word32
   (:refer-clojure :exclude [bit-xor bit-or bit-and bit-not
                             bit-shift-left bit-shift-right +])
-  (:require [bitalgs.data :refer [IByteString]]
+  (:require [bitalgs.data :refer [IByteString ITraceableValue]]
             [clojure.core :as core]
             [clojure.walk :as wk]))
 
@@ -12,7 +12,19 @@
     (assert (<= 0 i 3))
     (core/bit-and 255
                   (core/bit-shift-right long-val
-                                        (* (- 3 i) 8)))))
+                                        (* (- 3 i) 8))))
+  ITraceableValue
+  (id [x] (:bitalgs/id (meta x)))
+  (inputs [x]
+    (-> x
+        meta
+        :bitalgs/provenance
+        :inputs))
+  (operation [x]
+    (-> x
+        meta
+        :bitalgs/provenance
+        :op-name)))
 
 (alter-var-root #'->Word32
                 (fn [func]
