@@ -10,3 +10,12 @@
           `(defmethod ~mname ~dispatch
              ~arglist
              ~body))))
+
+(defn derives
+  "Like derive, but for deriving multiple children at once.
+   Note the parent comes first."
+  [h parent & children]
+  (reduce
+   #(derive %1 %2 parent)
+   h
+   children))

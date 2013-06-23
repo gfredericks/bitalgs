@@ -3,14 +3,8 @@
   (:require [bitalgs.data :as data]
             [bitalgs.data.word32
              :as w32
-             :refer [word32? bitly]]))
-
-(defn derives
-  [h parent & children]
-  (reduce
-   #(derive %1 %2 parent)
-   h
-   children))
+             :refer [word32? bitly]]
+            [bitalgs.util :refer [derives]]))
 
 (def type-hierarchy
   (-> (make-hierarchy)
