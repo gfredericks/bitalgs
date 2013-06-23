@@ -3,42 +3,32 @@
   (:require [bitalgs.data :as data]
             [bitalgs.data.word32
              :as w32
-             :refer [word32? bitly]]))
+             :refer [word32? bitly]]
+            [bitalgs.util :refer [derives]]))
 
 (def type-hierarchy
   (-> (make-hierarchy)
 
-      (derive ::F ::FGHI)
-      (derive ::G ::FGHI)
-      (derive ::H ::FGHI)
-      (derive ::I ::FGHI)
+      (derives ::FGHI ::F ::G ::H ::I)
+      (derives ::output ::output-A ::output-B ::output-C ::output-D)
+      (derives ::init ::init-A ::init-B ::init-C ::init-D)
 
-      (derive ::output-A ::output)
-      (derive ::output-B ::output)
-      (derive ::output-C ::output)
-      (derive ::output-D ::output)
+      (derives ::A-super ::A ::init-A)
+      (derives ::B-super ::B ::init-B)
+      (derives ::C-super ::C ::init-C)
+      (derives ::D-super ::D ::init-D)
 
-      (derive ::init-A ::init)
-      (derive ::init-B ::init)
-      (derive ::init-C ::init)
-      (derive ::init-D ::init)
+      (derives ::ABCD-super ::A-super ::B-super ::C-super ::D-super)
+      (derives ::ABCD ::A ::B ::C ::D)
 
-      (derive ::A ::A-super)
-      (derive ::init-A ::A-super)
-      (derive ::B ::B-super)
-      (derive ::init-B ::B-super)
-      (derive ::C ::C-super)
-      (derive ::init-C ::C-super)
-      (derive ::D ::D-super)
-      (derive ::init-D ::D-super)
+      (derives ::A-all ::A-super ::output-A)
+      (derives ::B-all ::B-super ::output-B)
+      (derives ::C-all ::C-super ::output-C)
+      (derives ::D-all ::D-super ::output-D)
 
-      (derive ::A-super ::ABCD-super)
-      (derive ::B-super ::ABCD-super)
-      (derive ::C-super ::ABCD-super)
-      (derive ::D-super ::ABCD-super)
+      (derives ::ABCD-all ::A-all ::B-all ::C-all ::D-all)
 
-      (derive ::init ::constant)
-      (derive ::T ::constant)))
+      (derives ::constant ::init ::T)))
 
 (defn word64->bytes
   [x]
