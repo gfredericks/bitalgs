@@ -51,6 +51,26 @@
                      (fd/+ x1 x x2)
                      (fd/+ y1 y y2))))})
 
+(defn set-Y-diff-min-per-input
+  "Declares the minimum value for the Y-diff between two types, as
+   well as the assertion that the given value actually exists -- i.e.,
+   it is the infimum."
+  [input-type output-type min-y]
+  {:types [input-type output-type]
+   :scope :input
+   :goal (fn [in-v outputs]
+           (let [diffs (repeatedly (count outputs) lvar)]
+             (matche [in-v]
+                     ([[_ y1]]
+                        (everyg
+                         (fn [[out-v diff]]
+                           (matche [out-v]
+                                   ([[_ y2]]
+                                      (fd/+ y1 diff y2)
+                                      (fd/<= min-y diff))))
+                         (map list outputs diffs))
+                        (membero min-y diffs)))))})
+
 (defn ^:private set-rectangular-domain
   [vars [minx miny width height]]
   (everyg
@@ -69,7 +89,8 @@
    Returns a map from IDs to [x y]."
   [tvals hierarchy rectangle & constraints]
   {:post [(map? %)]}
-  (let [pairs (for [tval tvals, input (data/traceable-inputs tval)] [input tval])
+  (let [isa? (partial isa? hierarchy)
+        pairs (for [tval tvals, input (data/traceable-inputs tval)] [input tval])
         ids (map data/id tvals)
         vars (zipmap ids (repeatedly lvar))
 
@@ -80,7 +101,7 @@
          (fn [type]
            (filter
             (fn [{type' :type}]
-              (and type' (isa? hierarchy type type')))
+              (and type' (isa? type type')))
             constraints)))
 
         constraints-for-pair-of-types
@@ -90,8 +111,8 @@
             (fn [{[itype otype] :types}]
               (and itype
                    otype
-                   (isa? hierarchy input-type itype)
-                   (isa? hierarchy output-type otype)))
+                   (isa? input-type itype)
+                   (isa? output-type otype)))
             constraints)))]
     (first
      (run 1 [q]
@@ -100,7 +121,8 @@
           (everyg identity
                   (for [tval tvals
                         :let [var (vars (data/id tval))]
-                        constraint (constraints-for-single-type (type tval))]
+                        constraint (constraints-for-single-type (type tval))
+                        :when (nil? (:scope constraint))]
                     ((:goal constraint) var)))
           (everyg identity
                   (for [[input-val output-val] pairs
@@ -113,5 +135,21 @@
                                                           :val input-val})))]
                         constraint (constraints-for-pair-of-types
                                     (type input-val)
-                                    (type output-val))]
-                    ((:goal constraint) input-var output-var)))))))
+                                    (type output-val))
+                        :when (nil? (:scope constraint))]
+                    ((:goal constraint) input-var output-var)))
+          (everyg identity
+                  (for [{:keys [scope goal]
+                         [itype otype] :types} constraints
+                         :when (= :input scope)
+                         :let [pairs
+                               (for [[input-val output-val] pairs
+                                     :when (isa? (type input-val) itype)
+                                     :when (isa? (type output-val) otype)
+                                     :let [input-var (vars (data/id input-val))
+                                           output-var (vars (data/id output-val))]]
+                                 [input-var output-var])
+                               grouped-pairs (group-by first pairs)]
+                         [input pairs] grouped-pairs
+                         :let [outputs (map second pairs)]]
+                    (goal input outputs)))))))

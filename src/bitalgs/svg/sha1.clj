@@ -259,16 +259,7 @@
                        (layout/set-XY-diff ::sha1/f3a        ::sha1/f3         1 1)
                        (layout/set-XY-diff ::sha1/f3b        ::sha1/f3         0 1)
                        (layout/set-XY-diff ::sha1/f3c        ::sha1/f3        -1 1)
-                       ;; Manual goal that sets some weird constraints on the
-                       ;; K positions such that they go exactly where I want :P
-                       {:types [::sha1/K ::sha1/A]
-                        :goal (fn [input-var output-var]
-                                (l/matche [input-var output-var]
-                                          ([[x1 y1] [x2 y2]]
-                                             (l/fresh [d]
-                                                      (fd/+ d y1 y2)
-                                                      (fd/> d 5)
-                                                      (fd/< d 121)))))}))
+                       (layout/set-Y-diff-min-per-input ::sha1/K ::sha1/A 6)))
 
 (defn svg
   [input-string words]
