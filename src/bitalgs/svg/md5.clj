@@ -1,6 +1,8 @@
 (ns bitalgs.svg.md5
-  (:require [bitalgs.md5 :as md5]
+  (:require [bitalgs.data :as data]
+            [bitalgs.md5 :as md5]
             [bitalgs.svg :as bsvg]
+            [bitalgs.svg.layout :as layout]
             [bitalgs.util :refer [defmethods]]
             [com.gfredericks.svg-wrangler :as svg]))
 
@@ -17,76 +19,33 @@
   [t]
   [2.5 (+ 1.25 (* t period)) 3 3])
 
-(defmulti coords type
-  :hierarchy #'md5/type-hierarchy)
+(defn make-layout
+  [words]
+  (layout/solve-layout words md5/type-hierarchy [0 0 10 1000]
+                       (layout/set-Y ::md5/init 0)
+                       (layout/set-X ::md5/A-all 2)
+                       (layout/set-X ::md5/B-all 3)
+                       (layout/set-X ::md5/C-all 4)
+                       (layout/set-X ::md5/D-all 5)
+                       (layout/set-Y-diff ::md5/ABCD-super ::md5/ABCD 7)
+                       (layout/set-Y-diff ::md5/ABCD ::md5/output 2)
+                       (layout/set-XY-diff ::md5/Bb ::md5/Ba 0 1)
+                       (layout/set-XY-diff ::md5/Ba ::md5/B 0 1)
+                       (layout/set-XY-diff ::md5/T ::md5/Bb -4 1)
+                       (layout/set-XY-diff ::md5/FGHI ::md5/Bb -1 1)
 
-(defmacro coords-fns
-  [& dispatch+bodies]
-  `(defmethods coords [~'word]
-     ~@(mapcat (fn [[dispatch body]]
-                 [dispatch `(let [~'t (::md5/t (meta ~'word))
-                                  ~'tp (if ~'t (* period ~'t))]
-                              ~body)])
-               (partition 2 dispatch+bodies))))
+                       (layout/set-XY-diff ::md5/Fc ::md5/Fb 2 1)
+                       (layout/set-XY-diff ::md5/Fb ::md5/F -1 1)
+                       (layout/set-XY-diff ::md5/Fa ::md5/F  0 1)
 
-(coords-fns
+                       (layout/set-XY-diff ::md5/Gc ::md5/Gb -1 1)
+                       (layout/set-XY-diff ::md5/Gb ::md5/G   0 1)
+                       (layout/set-XY-diff ::md5/Ga ::md5/G   1 1)
 
-  ::md5/FGHI
-  [4 (+ 4 tp)]
+                       (layout/set-XY-diff ::md5/Ib ::md5/Ia -2 1)
+                       (layout/set-XY-diff ::md5/Ia ::md5/I   1 1)
 
-  ::md5/Fa
-  [4 (+ 3 tp)]
-
-  ::md5/Fb
-  [5 (+ 3 tp)]
-
-  ::md5/Fc
-  [3 (+ 2 tp)]
-
-  ::md5/Ga
-  [3 (+ 3 tp)]
-
-  ::md5/Gb
-  [4 (+ 3 tp)]
-
-  ::md5/Gc
-  [5 (+ 2 tp)]
-
-  ::md5/Ia
-  [3 (+ 3 tp)]
-
-  ::md5/Ib
-  [5 (+ 2 tp)]
-
-  ::md5/A
-  [2 (* period (inc t))]
-
-  ::md5/B
-  [3 (* period (inc t))]
-
-  ::md5/Ba
-  [3 (- (* period (inc t)) 1)]
-
-  ::md5/Bb
-  [3 (- (* period (inc t)) 2)]
-
-  ::md5/C
-  [4 (* period (inc t))]
-
-  ::md5/D
-  [5 (* period (inc t))]
-
-  ::md5/T
-  [7 (- tp 3)]
-
-  ::md5/input
-  [0 (+ tp 4)]
-
-  ::md5/init
-  [(+ 2 (::md5/i (meta word))) 0]
-
-  ::md5/output
-  [(+ 2 (::md5/i (meta word))) (+ 2 (* period 64))])
+                       (layout/set-Y-diff-min-per-input ::md5/input ::md5/Bb 1)))
 
 (defmulti arrow-joints
   "Where the arrows points w1->w2"
@@ -262,7 +221,7 @@
 (defn svg
   [input-string words]
   (bsvg/svg
-   coords
+   (comp (make-layout words) data/id)
    arrow-joints
    fill-color
    (list (input-note input-string)
