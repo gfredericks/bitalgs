@@ -31,7 +31,7 @@
   [x]
   (->> x
        (inputs)
-       (filter #(satisfies? ITraceableValue %))))
+       (filter traceable-value?)))
 
 ;; TODO: Do we also want a protocol for the thing we're using :type
 ;; metadata for?
