@@ -127,12 +127,7 @@
           (everyg identity
                   (for [[input-val output-val] pairs
                         :let [input-var (vars (data/id input-val))
-                              output-var (vars (data/id output-val))
-                              _ (if-not input-var
-                                  (throw (ex-info "POOP" {:id (data/id input-val)
-                                                          :keys (take 2 (keys vars))
-                                                          :type (type input-val)
-                                                          :val input-val})))]
+                              output-var (vars (data/id output-val))]
                         constraint (constraints-for-pair-of-types
                                     (type input-val)
                                     (type output-val))
